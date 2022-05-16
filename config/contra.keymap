@@ -8,38 +8,170 @@
 #include <dt-bindings/zmk/keys.h>
 #include <dt-bindings/zmk/bt.h>
 
-#define DEFAULT  0
-#define NUM_MODS 1
-#define BT_CTRL  2
+
+// For QMK:
+// KC_NONUS_BSLASH (\|) is equivalent to ["é] key in Turkish keyboards.
+// KC_GRV (~ `) is equivalent to [<>|] key in Turkish keyboards.
+// KC_SCLN is Turkish s [şŞ] key
+// KC_QUOT is Turkish i [iİ] key
+// KC_COMM is Turkish o [öÖ] key
+// KC_DOT is Turkish c [çÇ] key
+
+// For ZMK:
+// NON_US_BACKSLASH (\|) is equivalent to ["é] key in Turkish keyboards.
+// GRAVE (~ `) is equivalent to [<>|] key in Turkish keyboards.
+// SEMI (;) is Turkish s [şŞ] key
+// SQT (') is Turkish i [iİ] key
+// COMMA (,) is Turkish o [öÖ] key
+// DOT (.) is Turkish c [çÇ] key
+// FSLH (/) is Turkish dot [.:] key
+// BSLH (\) is Turkish comma (,;) key
+
+// Custom shortcuts specific to Turkish layout
+#define _CURLY_OPEN RA(N7)
+#define _CURLY_CLOSE RA(N0)
+#define _AT_SIGN RA(Q)
+#define _SQUARE_OPEN RA(N8)
+#define _SQUARE_CLOSE RA(N9)
+#define _DOLLAR_SIGN RA(N4)
+#define _BACKSLASH RA(MINUS)
+#define _VERTICAL_PIPE RA(EQUAL)
+#define _BACKTICK RA(BACKSLASH)
+#define _TILDE RA(RIGHT_BRACKET)
+#define _NUMBER_SIGN RA(N3) //hashtag sign
+#define _LOCKSCREEN LC(LS(C_PWR)) // Screen Lock shortcut for OSX
+
+// Layers
+#define _QWERTY 0
+#define _LOWER 1
+#define _RAISE 2
+#define _SPACE 3
+#define _NUMPAD 4
+// #define _SODA 5
+#define _ADJUST 5
 
 / {
     keymap {
         compatible = "zmk,keymap";
 
         default_layer {
+        /* Qwerty
+        * ,-----------------------------------------------------------------------------------.
+        * |  Tab |   Q  |   W  |   E  |   R  |   T  |   Y  |   U  |   I  |   O  |   P  | Bksp |
+        * |------+------+------+------+------+------+------+------+------+------+------+------|
+        * |NPdEsc|   A  |   S  |   D  |   F  |   G  |   H  |   J  |   K  |   L  |   Ş  |   İ  |
+        * |------+------+------+------+------+------+------+------+------+------+------+------|
+        * |SftCps|   Z  |   X  |   C  |   V  |   B  |   N  |   M  |   Ö  |   Ç  |   .  |SftEtr|
+        * |------+------+------+------+------+------+------+------+------+------+------+------|
+        * |Adj|<>| Ctrl | Alt  |  OS  |Lowr|,|Space*| Bksp |Rise|"| Left | Down |  Up  |Right |
+        * `-----------------------------------------------------------------------------------'
+        */
             bindings = <
-    &kp ESC   &kp Q     &kp W    &kp E     &kp R       &kp T      &kp Y     &kp U        &kp I     &kp O     &kp P    &kp BSPC
-    &kp TAB   &kp A     &kp S    &kp D     &kp F       &kp G      &kp H     &kp J        &kp K     &kp L     &kp SEMI &kp SQT
-    &kp LSHFT &kp Z     &kp X    &kp C     &kp V       &kp B      &kp N     &kp M        &kp COMMA &kp DOT   &kp FSLH &kp ENTER
-    &kp LCTRL &kp LGUI  &kp LALT &kp BSLH  &to DEFAULT &kp SPACE  &trans    &to NUM_MODS &kp LEFT  &kp RIGHT &kp UP   &kp DOWN
+    &lt _NUMPAD ESC  &kp Q  &kp W  &kp E  &kp R  &kp T &kp Y  &kp U  &kp I  &kp O  &kp P  &kp BSPC
+    &mt LSHFT CLCK  &kp A  &kp S  &kp D  &kp F  &kp G &kp H  &kp J  &kp K  &kp L  &kp SEMI  &kp SQT
+    &mt LCTRL TAB  &kp Z  &kp X  &kp C  &kp V  &kp B &kp N  &kp M  &kp COMMA  &kp DOT  &kp FSLH  &mt LCTRL RET
+    &lt _ADJUST GRAVE  &kp LCTRL  &kp LALT  &kp LGUI  &lt _LOWER BSLH  &lt _SPACE SPACE  &kp BSPC  &lt _RAISE NON_US_BACKSLASH  &kp LEFT  &kp DOWN  &kp UP  &kp RIGHT
             >;
         };
 
-        num_mods {
+        lower_layer {
+        /* Lower
+         * ,-----------------------------------------------------------------------------------.
+         * |   >  |   !  |   '  |   ^  |   +  |   %  |   &  |   /  |   (  |   )  |   =  | Bksp |
+         * |------+------+------+------+------+------+------+------+------+------+------+------|
+         * |  F1  |  F2  |  F3  |  F4  |  F5  |  F6  |  "$" |   ?  |   _  |  Ğ   |  Ü   |  -   |
+         * |------+------+------+------+------+------+------+------+------+------+------+------|
+         * |  F7  |  F8  |  F9  | F10  |  F11 |  F12 |  "@" |  "$" |  "{" |  "}" |  <   |  ">" |
+         * |------+------+------+------+------+------+------+------+------+------+------+------|
+         * |  F13 |  F14 |      |      |      |      |  ADJ |      |  "[" |  "]" |  '   |   "  |
+         * `-----------------------------------------------------------------------------------'
+         */
             bindings = <
-    &kp GRAVE &kp N1    &kp N2   &kp N3   &kp N4      &kp N5     &kp N6    &kp N7      &kp N8    &kp N9    &kp N0   &kp DEL
-    &kp TAB   &kp F1    &kp F2   &kp F3   &kp F4      &kp F5     &kp F6    &kp MINUS   &kp PG_UP &kp LBKT  &kp RBKT &kp BSLH
-    &kp LSHFT &kp F7    &kp F8   &kp F9   &kp F10     &kp F11    &kp F12   &kp EQUAL   &kp PG_DN &kp HOME  &kp END  &kp ENTER
-    &kp LCTRL &kp LGUI  &kp LALT &reset   &to DEFAULT &kp SPACE  &trans    &mo BT_CTRL &kp LEFT  &kp RIGHT &kp UP   &kp DOWN
+                &kp TILDE  &kp EXCL  &kp AT  &kp HASH  &kp DLLR  &kp PRCNT &kp CARET  &kp AMPS  &kp ASTERISK  &kp LPAR  &kp RPAR  &kp BSPC
+                &kp F1  &kp F2  &kp F3  &kp F4  &kp F5  &kp F6 &kp _DOLLAR_SIGN  &kp UNDERSCORE &kp PLUS  &kp LEFT_BRACKET  &kp RIGHT_BRACKET  &kp EQUAL
+                &kp F7  &kp F8  &kp F9  &kp F10  &kp F11  &kp F12 &kp _AT_SIGN &kp _DOLLAR_SIGN &kp _CURLY_OPEN  &kp _CURLY_CLOSE  &kp _CURLY_CLOSE  &kp GRAVE  &mt LSHFT GRAVE
+                &kp F13  &kp F14  &trans  &trans  &trans  &trans  &mo _ADJUST  &trans  &kp _SQUARE_OPEN  &kp _SQUARE_CLOSE  &kp AT  &kp NON_US_BACKSLASH
+            >;
+        };
+        
+        raise_layer {
+        /* Raise
+        * ,-----------------------------------------------------------------------------------.
+        * |  <>| |   1  |   2  |   3  |   4  |   5  |   6  |   7  |   8  |   9  |   0  | Bksp |
+        * |------+------+------+------+------+------+------+------+------+------+------+------|
+        * |  Del |  F1  |  F2  |  F3  |  F4  |  F5  |  F6  |   *  |   -  | "\"  | "|"  |  ,   |
+        * |------+------+------+------+------+------+------+------+------+------+------+------|
+        * |      |  F7  |  F8  |  F9  |  F10 |  F11 |  F12 |   #  |   "  | "~"  | "`"  |  <>| |
+        * |------+------+------+------+------+------+------+------+------+------+------+------|
+        * |      |      |      |      |      |      |      |      | Next | Vol- | Vol+ |PlyPse|
+        * `-----------------------------------------------------------------------------------'
+        */
+            bindings = <
+                &kp GRAVE  &kp N1  &kp N2  &kp N3  &kp N4  &kp N5  &kp N6  &kp N7  &kp N8  &kp N9  &kp N0  &kp BSPC
+                &kp DEL  &kp F1  &kp F2  &kp F3  &kp F4  &kp F5  &kp F6  &kp MINUS  &kp EQUAL  &kp _BACKSLASH  &kp _VERTICAL_PIPE  &kp BACKSLASH
+                &trans  &kp F7  &kp F8  &kp F9  &kp F10  &kp F11  &kp F12  &kp _NUMBER_SIGN  &kp NON_US_BSLH  &kp _TILDE  &kp _BACKTICK  &kp GRAVE
+                &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &kp C_NEXT  &kp C_VOL_DN  &kp C_VOL_UP &kp C_PLAY_PAUSE
             >;
         };
 
-        bt_control {
+        space_layer {
+        /* Space Layer (Space Bar Layer Tap)
+        * ,-----------------------------------------------------------------------------------.
+        * |      |CMD+1 |CMD+2 |CMD+3 |CMD+4 |CMD+5 |CMD+6 |CMD+7 |CMD+8 |CMD+9 |CMD+0 |LCKOSX|
+        * |------+------+------+------+------+------+------+------+------+------+------+------|
+        * |      |      |      |      |      |      |      |      |      |  Up  |      |      |
+        * |------+------+------+------+------+------+------+------+------+------+------+------|
+        * |      |      |      |      |      |      |      |      | Left | Down |Right |      |
+        * |------+------+------+------+------+------+------+------+------+------+------+------|
+        * |      |      |      |      |      |      |      |      |      |      |Brght▼|Brght▲|
+        * `-----------------------------------------------------------------------------------'
+        */
             bindings = <
-    &bt BT_CLR &bt BT_SEL 0 &bt BT_SEL 1 &bt BT_SEL 2 &bt BT_SEL 3 &bt BT_SEL 4 &trans    &trans    &trans     &trans     &trans   &trans
-    &trans     &trans       &trans       &trans       &trans       &trans       &trans    &trans    &trans     &trans     &trans   &trans
-    &trans     &trans       &trans       &trans       &trans       &trans       &trans    &trans    &trans     &trans     &trans   &trans
-    &trans     &trans       &trans       &trans       &trans       &trans       &trans    &trans    &bt BT_PRV &bt BT_NXT &trans   &trans
+                &trans  &kp LG(N1)  &kp LG(N2)  &kp LG(N3)  &kp LG(N4)  &kp LG(N5)  &kp LG(N6)  &kp LG(N7)  &kp LG(N8)  &kp LG(N9)  &kp LG(N0)  &kp _LOCKSCREEN
+                &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &kp UP  &trans  &trans
+                &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &kp LEFT  &kp DOWN  &kp RIGHT  &trans
+                &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &kp C_BRI_INC  &kp C_BRI_DEC
+            >;
+        };
+
+        numpad_layer {
+        /* Numpad Layer
+        * KP_PDOT is comma on the Turkish layout ¯\_(ツ)_/¯
+        * ,-----------------------------------------------------------------------------------.
+        * |      |      |      |      |      |      |   =  |   7  |   8  |   9  |   -  | Bksp |
+        * |------+------+------+------+------+------+------+------+------+------+------+------|
+        * |      |      |      |      |      |      | Enter|   4  |   5  |   6  |   +  |   *  |
+        * |------+------+------+------+------+------+------+------+------+------+------+------|
+        * |      | Vol +|      |      |      |      | Enter|   1  |   2  |   3  |   +  |   /  |
+        * |------+------+------+------+------+------+------+------+------+------+------+------|
+        * |      | Vol -| Mute |      |      | Space| Bkspc|   0  |   0  |   .  |   ,  |   =  |
+        * `-----------------------------------------------------------------------------------'
+        */
+            bindings = <
+                &none  &none  &none  &none  &none  &none  &kp KP_EQUAL  &kp N7  &kp N8  &kp N9  &kp KP_MINUS  &kp BSPC
+                &none  &none  &none  &none  &none  &none  &kp KP_ENTER  &kp N4  &kp N5  &kp N6  &kp KP_PLUS  &kp KP_ASTERISK
+                &none  &kp C_VOL_UP  &none  &none  &none  &none  &kp KP_ENTER  &kp N1  &kp N2  &kp N3  &kp KP_PLUS  &kp KP_SLASH
+                &none  &kp C_VOL_DN  &kp C_MUTE  &none  &none &kp SPACE  &kp BSPC  &kp N0  &kp N0  &kp SLASH  &kp KP_DOT  &kp KP_EQUAL
+            >;
+        };
+
+        adjust_layer {
+        /* Adjust Layer
+        * ,-----------------------------------------------------------------------------------.
+        * | BT 0 | BT 1 | BT 2 | BT 3 | BT 4 |      |      |      |      |      |      |BT CLR|
+        * |------+------+------+------+------+------+------+------+------+------+------+------|
+        * |      |      |      |      |      |      |      |      |      |      |      | RESET|
+        * |------+------+------+------+------+------+------+------+------+------+------+------|
+        * |      |      |      |      |      |      |      |      |      |      |      |      |
+        * |------+------+------+------+------+------+------+------+------+------+------+------|
+        * |      |      |      |      |      |      |      |      |      |      |      |      |
+        * `-----------------------------------------------------------------------------------'
+        */
+            bindings = <
+               &bt BT_SEL 0 &bt BT_SEL 1 &bt BT_SEL 2 &bt BT_SEL 3 &bt BT_SEL 4  &none  &none  &none  &none  &none  &none  &bt BT_CLR
+                &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &reset
+                &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none
+                &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none
             >;
         };
     };

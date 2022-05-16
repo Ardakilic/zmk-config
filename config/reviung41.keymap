@@ -135,7 +135,7 @@
                         bindings = <
    &kp TAB  &kp N1  &kp N2  &kp N3  &kp N4  &kp N5              &kp N6  &kp N7  &kp N8  &kp N9  &kp N0  &kp BSPC
    &kp F1  &kp F2  &kp F3  &kp F4  &kp F5  &kp F6     /*Todo ?*/&trans  &kp MINUS  &kp EQUAL  &kp _BACKSLASH  &kp _VERTICAL_PIPE  &kp BACKSLASH
-   &kp F7  &kp F8  &kp F9  &kp F10  &kp F11  &kp F12            &kp AT_SIGN  &kp _NUMBER_SIGN  &kp NON_US_BSLH  &kp _TILDE  &kp _BACKTICK  &kp GRAVE
+   &kp F7  &kp F8  &kp F9  &kp F10  &kp F11  &kp F12            &kp AT  &kp _NUMBER_SIGN  &kp NON_US_BSLH  &kp _TILDE  &kp _BACKTICK  &kp GRAVE
                         /* TODO */ &trans  &mo _ADJUST    &kp BSPC    &trans    &trans /* TODO */
                         >;
                 };
@@ -159,14 +159,14 @@
                 numpad_layer {
 // -----------------------------------------------------------------------------------------
 // |     |     |     |     |     |     |   |  =  |Num7 |Num8 |Num9 |  -  |Bcksp |
-// |     |     |     |     |     |     |   |  .  |Num4 |Num5 |Num6 |  +  |  +   |
+// |     |     |     |     |     |     |   |  .  |Num4 |Num5 |Num6 |  +  |  *   |
 // |     |     |     |     |     |     |   |  ,  |Num1 |Num2 |Num3 |  .  |  /   |
 //                   |      |     | Enter |  Num0   |  Num0   |
                         bindings = <
    &none  &none  &none  &none  &none  &none                     &kp KP_EQUAL  &kp N7  &kp N8  &kp N9  &kp KP_MINUS  &kp BSPC
-   &none  &none  &none  &none  &none  &none                     &kp SLASH  &kp N4  &kp N5  &kp N6  &kp KP_PLUS  &kp KP_PLUS
+   &none  &none  &none  &none  &none  &none                     &kp SLASH  &kp N4  &kp N5  &kp N6  &kp KP_PLUS  &kp KP_ASTERISK
    &none  &none  &none  &none  &none  &none                     &kp KP_DOT &kp N1  &kp N2  &kp N3  &kp SLASH  &kp KP_SLASH
-                                &none  &none    &kp RET    &kp N0  &kp N0 
+                                &none  &none    &kp KP_ENTER    &kp N0  &kp N0 
                         >;
                 };
 

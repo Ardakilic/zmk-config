@@ -61,15 +61,15 @@
         * |------+------+------+------+------+------+------+------+------+------+------+------|
         * |NPdEsc|   A  |   S  |   D  |   F  |   G  |   H  |   J  |   K  |   L  |   Ş  |   İ  |
         * |------+------+------+------+------+------+------+------+------+------+------+------|
-        * |SftCps|   Z  |   X  |   C  |   V  |   B  |   N  |   M  |   Ö  |   Ç  |   .  |SftEtr|
+        * | LSFT |   Z  |   X  |   C  |   V  |   B  |   N  |   M  |   Ö  |   Ç  |   .  |SftEtr|
         * |------+------+------+------+------+------+------+------+------+------+------+------|
         * |Adj|<>| Ctrl | Alt  |  OS  |Lowr|,|Space*| Bksp |Rise|"| Left | Down |  Up  |Right |
         * `-----------------------------------------------------------------------------------'
         */
             bindings = <
-    &lt _NUMPAD ESC  &kp Q  &kp W  &kp E  &kp R  &kp T &kp Y  &kp U  &kp I  &kp O  &kp P  &kp BSPC
-    &mt LSHFT CLCK  &kp A  &kp S  &kp D  &kp F  &kp G &kp H  &kp J  &kp K  &kp L  &kp SEMI  &kp SQT
-    &mt LCTRL TAB  &kp Z  &kp X  &kp C  &kp V  &kp B &kp N  &kp M  &kp COMMA  &kp DOT  &kp FSLH  &mt LCTRL RET
+    &kp TAB  &kp Q  &kp W  &kp E  &kp R  &kp T &kp Y  &kp U  &kp I  &kp O  &kp P  &kp BSPC
+    &lt _NUMPAD ESC  &kp A  &kp S  &kp D  &kp F  &kp G &kp H  &kp J  &kp K  &kp L  &kp SEMI  &kp SQT
+    &kp LSHFT  &kp Z  &kp X  &kp C  &kp V  &kp B &kp N  &kp M  &kp COMMA  &kp DOT  &kp FSLH  &mt RSHFT RET
     &lt _ADJUST GRAVE  &kp LCTRL  &kp LALT  &kp LGUI  &lt _LOWER BSLH  &lt _SPACE SPACE  &kp BSPC  &lt _RAISE NON_US_BACKSLASH  &kp LEFT  &kp DOWN  &kp UP  &kp RIGHT
             >;
         };
@@ -162,7 +162,7 @@
         * |------+------+------+------+------+------+------+------+------+------+------+------|
         * |      |      |      |      |      |      |      |      |      |      |      | RESET|
         * |------+------+------+------+------+------+------+------+------+------+------+------|
-        * |      |      |      |      |      |      |      |      |      |      |      |      |
+        * |CpsLck|      |      |      |      |      |      |      |      |      |      |      |
         * |------+------+------+------+------+------+------+------+------+------+------+------|
         * |      |      |      |      |      |      |      |      |      |      |      |      |
         * `-----------------------------------------------------------------------------------'
@@ -170,7 +170,7 @@
             bindings = <
                &bt BT_SEL 0 &bt BT_SEL 1 &bt BT_SEL 2 &bt BT_SEL 3 &bt BT_SEL 4  &none  &none  &none  &none  &none  &none  &bt BT_CLR
                 &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &reset
-                &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none
+                &kp CLCK &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none
                 &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none
             >;
         };

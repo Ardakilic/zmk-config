@@ -89,7 +89,7 @@
             bindings = <
                 &kp TILDE  &kp EXCL  &kp AT  &kp HASH  &kp DLLR  &kp PRCNT &kp CARET  &kp AMPS  &kp ASTERISK  &kp LPAR  &kp RPAR  &kp BSPC
                 &kp F1  &kp F2  &kp F3  &kp F4  &kp F5  &kp F6 &kp _DOLLAR_SIGN  &kp UNDERSCORE &kp PLUS  &kp LEFT_BRACKET  &kp RIGHT_BRACKET  &kp EQUAL
-                &kp F7  &kp F8  &kp F9  &kp F10  &kp F11  &kp F12 &kp _AT_SIGN &kp _DOLLAR_SIGN &kp _CURLY_OPEN  &kp _CURLY_CLOSE  &kp _CURLY_CLOSE  &kp GRAVE  &mt LSHFT GRAVE
+                &kp F7  &kp F8  &kp F9  &kp F10  &kp F11  &kp F12 &kp _AT_SIGN &kp _DOLLAR_SIGN &kp _CURLY_OPEN  &kp _CURLY_CLOSE &kp GRAVE  &mt LSHFT GRAVE
                 &kp F13  &kp F14  &trans  &trans  &trans  &trans  &mo _ADJUST  &trans  &kp _SQUARE_OPEN  &kp _SQUARE_CLOSE  &kp AT  &kp NON_US_BACKSLASH
             >;
         };

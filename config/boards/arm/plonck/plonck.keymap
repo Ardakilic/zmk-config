@@ -1,0 +1,87 @@
+/*
+ * Copyright (c) 2021 swampmonster
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+#include <behaviors.dtsi>
+#include <dt-bindings/zmk/keys.h>
+#include <dt-bindings/zmk/bt.h>
+
+/ {
+    combos {
+        compatible = "zmk,combos";
+        combo_mins {
+            timeout-ms = <30>;
+            key-positions = <15 16>;
+            bindings = <&kp MINUS>;
+        };
+
+        combo_unds {
+            timeout-ms = <30>;
+            key-positions = <19 20>;
+            bindings = <&kp UNDER>;
+        };
+    };
+
+    behaviors {
+        hm: homerow_mods {
+            compatible = "zmk,behavior-hold-tap";
+            label = "HOMEROW_MODS";
+            #binding-cells = <2>;
+            tapping-term-ms = <200>;
+            quick_tap_ms = <0>;
+            flavor = "tap-preferred";
+            bindings = <&kp>, <&kp>;
+        };
+    };
+
+	keymap {
+		compatible = "zmk,keymap";
+
+		default_layer {
+			bindings = <
+                &gresc    &kp Q      &kp W      &kp E       &kp R       &kp T     &kp Y     &kp U       &kp I       &kp O      &kp P         &kp BSPC
+	            &kp TAB   &hm LCMD A &hm LALT S &hm LCTRL D &hm LSHFT F &kp G     &kp H     &hm RSHFT J &hm RCTRL K &hm RALT L &hm RGUI SEMI &kp SQT
+	            &kp LSHFT &kp Z      &kp X      &kp C       &kp V       &kp B     &kp N     &kp M       &kp COMMA   &kp DOT    &kp FSLH      &kp RET
+	            &trans    &kp LCTRL  &kp LALT   &kp LCMD    &mo 2       &lt 1 SPC &lt 3 RET &mo 2       &kp RCMD    &kp RALT   &kp RCTRL     &trans
+			>;
+		};
+
+		nav_layer {
+			bindings = <
+                &bootloader &trans &trans &trans &trans &trans &trans   &trans    &trans    &trans    &trans &kp DEL
+                &trans      &trans &trans &trans &trans &trans &kp LEFT &kp DOWN  &kp UP    &kp RIGHT &trans &trans
+                &trans      &trans &trans &trans &trans &trans &kp HOME &kp PG_DN &kp PG_UP &kp END   &trans &trans
+                &trans      &trans &trans &trans &trans &trans &mo 4 &trans &trans    &trans    &trans &trans
+			>;
+		};
+
+		num_layer {
+			bindings = <
+                &trans &trans &trans &trans &trans &trans &kp KP_SLASH    &kp N7 &kp N8    &kp N9  &kp KP_MINUS &trans
+                &trans &trans &trans &trans &trans &trans &kp KP_MULTIPLY &kp N4 &kp N5    &kp N6  &kp KP_PLUS  &trans
+                &trans &trans &trans &trans &trans &trans &trans          &kp N1 &kp N2    &kp N3  &kp KP_EQUAL &trans
+                &trans &trans &trans &trans &trans &trans &trans          &kp N0 &kp COMMA &kp DOT &trans       &trans
+			>;
+		};
+
+		sym_layer {
+			bindings = <
+                &kp GRAVE &kp EXCL  &kp AT    &kp HASH  &kp LPAR &kp RPAR &trans &trans &trans &trans &trans &trans 
+                &kp BSLH  &kp DLLR  &kp PRCNT &kp ASTRK &kp LBKT &kp RBKT &trans &trans &trans &trans &trans &trans 
+                &kp PIPE  &kp AMPS  &kp CARET &trans    &kp LBRC &kp RBRC &trans &trans &trans &trans &trans &trans 
+                &trans    &trans    &trans    &trans    &trans   &mo 4   &trans &trans &trans &trans &trans &trans 
+			>;
+		};
+
+        adjustment_layer {
+            bindings = <
+                &bt BT_CLR &bt BT_SEL 0 &bt BT_SEL 1 &bt BT_SEL 2 &bt BT_SEL 3 &trans &trans &trans &trans &trans &trans &trans 
+                &bt BT_PRV &bt BT_NXT &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans 
+                &trans &trans &trans &trans    &trans &trans &trans &trans &trans &trans &trans &trans 
+                &trans    &trans    &trans    &trans    &trans   &trans   &trans &trans &trans &trans &trans &trans 
+            >;
+        };
+	};
+};

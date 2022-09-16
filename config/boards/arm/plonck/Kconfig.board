@@ -1,0 +1,9 @@
+# plonck board configuration
+
+# Copyright (c) 2021 swampmonster
+# SPDX-License-Identifier: MIT
+
+config BOARD_PLONCK
+	bool "plonck"
+	depends on SOC_NRF52840_QIAA
+

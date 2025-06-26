@@ -1,0 +1,8 @@
+# Copyright (c) 2025 The ZMK Contributors
+# SPDX-License-Identifier: MIT
+
+config SHIELD_ISTANBUL_LEFT
+    def_bool $(shields_list_contains,istanbul_left)
+
+config SHIELD_ISTANBUL_RIGHT
+    def_bool $(shields_list_contains,istanbul_right)

@@ -1,0 +1,18 @@
+file_format: "1"
+id: istanbul
+name: istanbul
+type: shield
+url: https://github.com/ozkan/istanbul-zmk
+requires:
+  - pro_micro
+outputs:
+  - usb
+  - ble
+features:
+  - keys
+  - underglow
+  - encoder 
+  - studio
+siblings:
+  - istanbul_left
+  - istanbul_right

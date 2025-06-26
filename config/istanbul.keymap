@@ -1,0 +1,94 @@
+/*
+ * Copyright (c) 2025 The ZMK Contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+#include <behaviors.dtsi>
+#include <dt-bindings/zmk/keys.h>
+
+
+// Using layer taps on thumbs, having quick tap as well helps w/ repeating space
+&lt {
+    tapping-term-ms = <200>;
+    quick_tap_ms = <200>;
+};
+
+
+
+/ {
+    behaviors {
+        ht: hold_tap {
+            compatible = "zmk,behavior-hold-tap";
+            #binding-cells = <2>;
+            flavor = "tap-preferred";
+            tapping-term-ms = <200>;
+            quick-tap-ms = <150>;
+            bindings = <&kp>, <&kp>;
+        };
+        
+        en_i: en_i {
+            compatible = "zmk,behavior-mod-morph";
+            #binding-cells = <0>;
+            bindings = 
+                <&kp SQT>,    // i
+                <&kp LS(I)>; // I
+            mods = <(MOD_LSFT|MOD_RSFT)>;
+        }; 
+
+        tr_i: tr_i {
+            compatible = "zmk,behavior-mod-morph";
+            #binding-cells = <0>;
+            bindings = 
+                <&kp I>,        // ı
+                <&kp LS(SQT)>; // İ
+            mods = <(MOD_LSFT|MOD_RSFT)>;
+        };
+
+        en_sqt: en-sqt {
+            compatible = "zmk,behavior-mod-morph";
+            #binding-cells = <0>;
+            bindings =  <&kp LS(N2)>,   // '
+                        <&kp GRAVE>;   // "
+            mods = <(MOD_LSFT|MOD_RSFT)>;
+        };
+
+        en_equal: en_equal {
+            compatible = "zmk,behavior-mod-morph";
+            #binding-cells = <0>;
+            bindings =  <&kp RS(N0)>,   // =
+                        <&kp KP_PLUS>; // +
+            mods = <(MOD_LSFT|MOD_RSFT)>;
+        };
+
+        en_slash: en_slash {
+            compatible = "zmk,behavior-mod-morph";
+            #binding-cells = <0>;
+            bindings =  <&kp RS(N7)>,  // slash
+                        < &kp UNDER>; // ?
+            mods = <(MOD_LSFT|MOD_RSFT)>;
+        };
+
+    };
+
+
+    keymap {
+        compatible = "zmk,keymap";
+
+        // This is a sample keymap intended to be replaced with your own
+        default_layer {
+
+            display-name = "Colemak";
+            bindings = <
+            &kp ESC   &kp N1      &kp N2       &kp N3       &kp N4       &kp N5                                                                        &kp N6   &kp N7        &kp N8                   &kp N9            &kp N0             &kp BACKSPACE
+            &kp TAB   &kp Q       &kp W        &kp F        &kp P        &kp G                                                                         &kp J    &kp L         &kp U                    &kp Y             &kp QUOT           &kp DEL
+            &kp LCTRL &kp A       &kp R        &kp S        &kp T        &kp D                                                                         &kp H    &kp N         &kp E                    &en_i             &kp O              &en_sqt
+            &kp LSHFT &ht LALT Z  &ht LCTRL X  &ht LSHFT C  &ht LGUI V   &kp B                                                                         &kp K    &ht RGUI M    &ht RSHFT NON_US_HASH    &ht RCTRL FSLH    &ht LALT RS(N7)    &kp RET
+                        &studio_unlock &kp LSHFT &kp LGUI &kp SPACE &kp CAPS   &kp C_PLAY_PAUSE         &kp C_PLAY_PAUSE     &kp RET &kp SPACE &kp RSHFT &kp BSPC &kp RALT
+            >;
+
+            // sensor-bindings = <&inc_dec_kp C_VOL_UP C_VOL_DN &inc_dec_kp PG_UP PG_DN>;
+        };
+
+    };
+};

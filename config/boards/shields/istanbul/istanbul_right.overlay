@@ -1,0 +1,26 @@
+/*
+ * Copyright (c) 2025 The ZMK Contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+
+#include "istanbul.dtsi"
+
+
+&default_transform {
+    col-offset = <6>;
+};
+
+&kscan0 {
+    col-gpios
+        = <&gpio1 11 GPIO_ACTIVE_HIGH>  // col7
+        , <&gpio1 13 GPIO_ACTIVE_HIGH>  // col8
+        , <&gpio1 15 GPIO_ACTIVE_HIGH>  // col9
+        , <&gpio0 2  GPIO_ACTIVE_HIGH>  // col10
+        , <&gpio0 29 GPIO_ACTIVE_HIGH>  // col11
+        , <&gpio0 31 GPIO_ACTIVE_HIGH>  // col12
+        ;
+};
+
+

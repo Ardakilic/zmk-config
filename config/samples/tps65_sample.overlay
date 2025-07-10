@@ -1,0 +1,65 @@
+/*
+ * Sample device tree overlay for TPS65 trackpad integration
+ * 
+ * This example shows how to add a TPS65 trackpad to your keyboard.
+ * Adjust I2C bus, GPIO pins, and configuration parameters as needed.
+ */
+
+&i2c0 {
+    status = "okay";
+    
+    tps65: trackpad@74 {
+        compatible = "azoteq,tps65";
+        reg = <0x74>;
+        
+        /* Variant selection - choose "43mm" or "65mm" */
+        variant = "65mm";
+        
+        /* Resolution and coordinate settings */
+        resolution-x = <4096>;
+        resolution-y = <4096>;
+        
+        /* Coordinate transformations (optional) */
+        // invert-x;
+        // invert-y;
+        // swap-axes;
+        
+        /* GPIO connections */
+        rdy-gpios = <&gpio0 15 GPIO_ACTIVE_HIGH>;  /* RDY pin for interrupt mode */
+        rst-gpios = <&gpio0 16 GPIO_ACTIVE_HIGH>;  /* RST pin for hardware reset */
+        
+        /* Touch sensitivity and behavior */
+        touch-threshold = <40>;        /* Lower = more sensitive */
+        max-touches = <5>;             /* 1-5 simultaneous touches */
+        palm-reject-threshold = <100>; /* Ignore touches larger than this */
+        
+        /* Gesture recognition */
+        gesture-enable;
+        
+        /* Communication timeout */
+        i2c-timeout-ms = <10>;
+    };
+};
+
+/* Alternative example for 43mm variant with different settings */
+/*
+&i2c1 {
+    status = "okay";
+    
+    tps65_small: trackpad@74 {
+        compatible = "azoteq,tps65";
+        reg = <0x74>;
+        
+        variant = "43mm";
+        resolution-x = <2048>;
+        resolution-y = <2048>;
+        
+        // Only use polling mode (no RDY GPIO)
+        rst-gpios = <&gpio0 20 GPIO_ACTIVE_HIGH>;
+        
+        touch-threshold = <50>;
+        max-touches = <2>;
+        gesture-enable;
+    };
+};
+*/ 

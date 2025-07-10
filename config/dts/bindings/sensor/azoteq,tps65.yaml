@@ -1,0 +1,81 @@
+# SPDX-License-Identifier: MIT
+
+description: Azoteq TPS-65 Trackpad (IQS5xx-B000 series)
+
+compatible: "azoteq,tps65"
+
+include: [sensor-device.yaml, i2c-device.yaml]
+
+properties:
+  variant:
+    type: string
+    default: "65mm"
+    enum:
+      - "43mm"
+      - "65mm"
+    description: |
+      Trackpad size variant. Affects coordinate scaling and touch area.
+      - 43mm: 43x40mm trackpad module
+      - 65mm: 65x49mm trackpad module
+
+  resolution-x:
+    type: int
+    default: 4096
+    description: X-axis resolution (coordinate range 0 to resolution-x)
+
+  resolution-y:
+    type: int
+    default: 4096
+    description: Y-axis resolution (coordinate range 0 to resolution-y)
+
+  invert-x:
+    type: boolean
+    description: Invert X-axis coordinates
+
+  invert-y:
+    type: boolean
+    description: Invert Y-axis coordinates
+
+  swap-axes:
+    type: boolean
+    description: Swap X and Y axes
+
+  rdy-gpios:
+    type: phandle-array
+    description: |
+      GPIO connected to the RDY (ready) pin. When specified, the driver
+      will use interrupt-driven mode instead of polling.
+
+  rst-gpios:
+    type: phandle-array
+    description: |
+      GPIO connected to the NRST (reset) pin. Optional for hardware reset control.
+
+  touch-threshold:
+    type: int
+    default: 40
+    description: |
+      Touch detection threshold (1-255). Lower values are more sensitive.
+      Should be adjusted based on overlay thickness and material.
+
+  gesture-enable:
+    type: boolean
+    default: true
+    description: Enable gesture recognition (swipes, taps, zoom, scroll)
+
+  max-touches:
+    type: int
+    default: 5
+    description: Maximum number of simultaneous touches to track (1-5)
+
+  palm-reject-threshold:
+    type: int
+    default: 100
+    description: |
+      Palm rejection threshold. Touches larger than this area will be ignored.
+      Set to 0 to disable palm rejection.
+
+  i2c-timeout-ms:
+    type: int
+    default: 10
+    description: I2C communication timeout in milliseconds 

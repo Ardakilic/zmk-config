@@ -1,0 +1,43 @@
+# SPDX-License-Identifier: MIT
+
+config ZMK_SENSOR_TPS65
+	bool "Azoteq TPS-65 Trackpad Support"
+	depends on I2C
+	help
+	  Enable support for Azoteq TPS-65 trackpad modules (43mm and 65mm variants).
+	  This driver supports multi-touch, gesture recognition, and coordinate reporting
+	  for the IQS5xx-B000 series trackpad controllers.
+
+if ZMK_SENSOR_TPS65
+
+config ZMK_SENSOR_TPS65_GESTURE_SUPPORT
+	bool "Enable gesture support"
+	default y
+	help
+	  Enable gesture recognition including swipes, taps, zoom, and scroll gestures.
+
+config ZMK_SENSOR_TPS65_MAX_TOUCHES
+	int "Maximum number of simultaneous touches"
+	default 5
+	range 1 5
+	help
+	  Maximum number of simultaneous touch points to track. Higher values
+	  consume more memory but allow more complex multi-touch gestures.
+
+config ZMK_SENSOR_TPS65_POLL_RATE_MS
+	int "Polling rate in milliseconds"
+	default 10
+	range 5 100
+	help
+	  How often to poll the trackpad for new data when not using interrupts.
+	  Lower values provide better responsiveness but higher power consumption.
+
+config ZMK_SENSOR_TPS65_SENSITIVITY
+	int "Touch sensitivity (1-255)"
+	default 40
+	range 1 255
+	help
+	  Touch sensitivity threshold. Lower values are more sensitive.
+	  Adjust based on overlay thickness and desired sensitivity.
+
+endif # ZMK_SENSOR_TPS65 

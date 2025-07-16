@@ -20,3 +20,35 @@
 &left_encoder {
     status = "okay";
 }; 
+
+// Added temporarily due to @ozkan 's request 
+&pro_micro_i2c {
+    status = "okay";
+    
+    tps65: trackpad@74 {
+        compatible = "azoteq,tps65";
+        reg = <0x74>;
+        
+        /* 65mm trackpad variant per datasheet */
+        variant = "65mm";
+        
+        /* Resolution per TPS65 datasheet: 3072 x 2048 */
+        resolution-x = <3072>;
+        resolution-y = <2048>;
+        
+        /* GPIO connections for trackpad control */
+        rdy-gpios = <&pro_micro 4 GPIO_ACTIVE_HIGH>;  /* RDY pin for interrupt mode */
+        rst-gpios = <&pro_micro 9 GPIO_ACTIVE_HIGH>;  /* RST pin for hardware reset */
+        
+        /* Touch sensitivity and behavior */
+        touch-threshold = <40>;        /* Lower = more sensitive */
+        max-touches = <5>;             /* 1-5 simultaneous touches */
+        palm-reject-threshold = <100>; /* Ignore touches larger than this */
+        
+        /* Enable gesture recognition */
+        gesture-enable;
+        
+        /* Communication timeout */
+        i2c-timeout-ms = <10>;
+    };
+}; 

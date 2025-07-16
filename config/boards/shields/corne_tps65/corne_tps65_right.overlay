@@ -40,7 +40,7 @@
         resolution-y = <2048>;
         
         /* GPIO connections for trackpad control */
-        rdy-gpios = <&pro_micro 8 GPIO_ACTIVE_HIGH>;  /* RDY pin for interrupt mode */
+        rdy-gpios = <&pro_micro 4 GPIO_ACTIVE_HIGH>;  /* RDY pin for interrupt mode */
         rst-gpios = <&pro_micro 9 GPIO_ACTIVE_HIGH>;  /* RST pin for hardware reset */
         
         /* Touch sensitivity and behavior */

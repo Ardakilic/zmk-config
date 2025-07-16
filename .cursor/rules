@@ -1,0 +1,167 @@
+# ZMK Firmware User Space Configuration Project
+
+## Project Overview
+This is a ZMK (Zephyr Mechanical Keyboard) firmware user space configuration that includes:
+- Custom keyboard shield definitions (Corne variants with trackpads)
+- Azoteq TPS43 and TPS65 trackpad driver integration
+- Device tree overlays and bindings
+- Keyboard layouts and configuration files
+- Build system integration for embedded firmware
+
+## Project Structure
+
+### Core Directories
+- `config/` - Main configuration directory containing all ZMK user space files
+- `config/boards/shields/` - Custom shield definitions for keyboard variants
+- `config/drivers/sensor/` - Custom sensor drivers (TPS43, TPS65 trackpads)
+- `config/dts/bindings/` - Device tree binding definitions
+- `config/samples/` - Example configurations and overlays
+- `.cursor/` - Cursor IDE configuration and project documentation
+  - `azoteq_datasheet.md` - Azoteq TPS43/TPS65 trackpad datasheet information and hardware specifications
+
+### Key File Types
+
+#### Device Tree Files (.dts, .dtsi, .overlay)
+- Define hardware configuration and pin mappings
+- Use Zephyr device tree syntax
+- Include GPIO definitions, I2C configurations, sensor nodes
+- Follow hierarchical include pattern (dtsi → overlay)
+
+#### Configuration Files (.conf)
+- Kconfig-style configuration directives
+- Use `CONFIG_` prefix for all settings
+- Control driver enablement, feature flags, and parameters
+- Split between board-specific and global configs
+
+#### Keyboard Layout Files (.keymap)
+- Define key bindings and layers
+- Use ZMK keymap syntax with behavior references
+- Support macros, tap-dance, and advanced features
+
+#### Device Tree Bindings (.yaml)
+- Define available properties for device tree nodes
+- Include validation schemas and documentation
+- Follow Zephyr binding conventions
+
+#### Driver Source Files (.c, .h)
+- Embedded C code following Zephyr conventions
+- Use Zephyr APIs and kernel primitives
+- Include proper error handling and logging
+
+#### Documentation Files (.md)
+- `azoteq_datasheet.md` - Comprehensive Azoteq trackpad datasheet reference
+- Contains hardware specifications, I2C communication protocols, and pin configurations
+- Essential reference for understanding TPS43/TPS65 hardware capabilities and limitations
+- Includes register maps, timing requirements, and electrical specifications
+
+## ZMK-Specific Conventions
+
+### Configuration Patterns
+- Global configs in root .conf files (e.g., `corne_tps43.conf`)
+- Shield-specific configs in shield directories
+- Use consistent naming: `CONFIG_ZMK_SENSOR_[DEVICE]_[SETTING]`
+- Always include required dependencies (I2C, SENSOR, GPIO)
+
+### Device Tree Patterns
+- Sensor nodes use compatible strings like "azoteq,tps43"
+- GPIO properties end with "-gpios" (e.g., "rdy-gpios", "rst-gpios")
+- I2C devices specify reg address (e.g., `reg = <0x74>`)
+- Include proper status properties ("okay" vs "disabled")
+
+### Shield Organization
+- Each shield has left/right variants with separate overlays
+- Common configuration in .dtsi files
+- Side-specific GPIO mappings in overlay files
+- Encoder and sensor definitions in appropriate overlays
+
+### Driver Conventions
+- Use Zephyr sensor API patterns
+- Implement proper initialization sequences
+- Include device tree integration with DT_INST macros
+- Follow Zephyr coding style and error handling
+
+## Build System Integration
+
+### CMake Patterns
+- Conditional compilation with `zephyr_library_sources_ifdef`
+- Link drivers based on CONFIG flags
+- Include proper dependencies in CMakeLists.txt
+
+### Kconfig Integration
+- Depend on device tree enablement (DT_HAS_[COMPATIBLE]_ENABLED)
+- Provide sensible defaults for all configuration options
+- Include help text for user-facing options
+
+## Hardware Integration
+
+**Reference Document**: See `.cursor/azoteq_datasheet.md` for complete hardware specifications, register maps, and electrical characteristics.
+
+### I2C Communication
+- Standard I2C addresses for trackpad controllers (typically 0x74)
+- Proper timeout and error handling
+- Support for both interrupt and polling modes
+- Communication protocols detailed in azoteq_datasheet.md
+
+### GPIO Usage
+- Ready (RDY) pins for interrupt-driven operation
+- Reset (RST) pins for hardware initialization
+- Proper pull-up/pull-down configurations
+- Pin specifications and timing requirements in azoteq_datasheet.md
+
+### Sensor Integration
+- Multi-touch support with configurable maximum touches
+- Gesture recognition capabilities
+- Configurable sensitivity and palm rejection
+- Resolution specifications: TPS43 (2048x1792), TPS65 (3072x2048)
+- Detailed sensor capabilities documented in azoteq_datasheet.md
+
+## Development Guidelines
+
+### Code Quality
+- Follow Zephyr coding standards
+- Use proper logging with LOG_* macros
+- Include comprehensive error checking
+- Document hardware requirements and pin connections
+
+### Testing
+- Test both left and right shield variants
+- Verify I2C communication and GPIO functionality
+- Test with different polling rates and sensitivity settings
+- Validate against both TPS43 and TPS65 hardware
+
+### Documentation
+- Include integration guides for new hardware
+- Document configuration options and their effects
+- Provide sample configurations for common use cases
+- Keep README files updated with build instructions
+- Reference `.cursor/azoteq_datasheet.md` for hardware-specific implementations
+- Cross-reference datasheet specifications when implementing new features
+
+## Common Issues and Solutions
+
+### Build Failures
+- Missing CONFIG flags: Ensure all required configs are set
+- Device tree errors: Check compatible strings and GPIO assignments
+- Missing dependencies: Include I2C, SENSOR, and GPIO configs
+
+### Hardware Integration
+- I2C address conflicts: Verify device addresses match datasheets
+- GPIO pin assignments: Check against board pinout diagrams
+- Power supply requirements: Ensure proper voltage levels (1.65V-3.6V)
+
+### Debugging
+- Enable logging with CONFIG_*_LOG_LEVEL_DBG
+- Use CONFIG_ZMK_USB_LOGGING for runtime debugging
+- Check device tree compilation output for node validation
+- Consult `.cursor/azoteq_datasheet.md` for register-level debugging and timing analysis
+- Verify hardware connections against datasheet pin specifications
+
+## Best Practices
+
+1. **Consistent Naming**: Use descriptive names that match hardware components
+2. **Configuration Hierarchy**: Global → Shield → Side-specific configs
+3. **Documentation**: Always document GPIO pin assignments and I2C addresses
+4. **Testing**: Verify both interrupt and polling modes work correctly
+5. **Version Control**: Track configuration changes with meaningful commit messages
+6. **Hardware Validation**: Test with actual hardware before finalizing configs
+7. **Datasheet Reference**: Always consult `.cursor/azoteq_datasheet.md` when implementing hardware-specific features or debugging issues

@@ -1,0 +1,13 @@
+file_format: "1"
+id: corne_tps65
+name: Corne TPS65
+type: shield
+url: https://github.com/foostan/crkbd
+requires: [pro_micro]
+features:
+  - keys
+  - encoder
+  - trackpad
+siblings:
+  - corne_tps65_left
+  - corne_tps65_right 

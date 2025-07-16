@@ -1,0 +1,32 @@
+# Copyright (c) 2025 The ZMK Contributors
+# SPDX-License-Identifier: MIT
+
+if SHIELD_CORNE_TPS65_LEFT
+
+config ZMK_KEYBOARD_NAME
+    default "Corne TPS65"
+
+config ZMK_SPLIT_ROLE_CENTRAL
+    default y
+
+endif
+
+if SHIELD_CORNE_TPS65_RIGHT
+
+config ZMK_KEYBOARD_NAME
+    default "Corne TPS65"
+
+# TPS65 sensor is enabled via driver Kconfig
+
+endif
+
+if SHIELD_CORNE_TPS65_LEFT || SHIELD_CORNE_TPS65_RIGHT
+
+config ZMK_SPLIT
+    default y
+
+# Disable USB logging to avoid split keyboard conflicts
+# config ZMK_USB_LOGGING
+#     default y
+
+endif 

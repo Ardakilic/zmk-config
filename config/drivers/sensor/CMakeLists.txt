@@ -1,5 +1,3 @@
-# SPDX-License-Identifier: MIT
+zephyr_library()
 
-if(CONFIG_ZMK_SENSOR_TPS65)
-  zephyr_library_sources(tps65.c)
-endif() 
+zephyr_library_sources_ifdef(CONFIG_TPS65 tps65.c) 

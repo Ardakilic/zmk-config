@@ -1,0 +1,26 @@
+# Copyright (c) 2025 The ZMK Contributors
+# SPDX-License-Identifier: MIT
+
+if SHIELD_CORNE_TPS43_LEFT
+
+config ZMK_KEYBOARD_NAME
+    default "Corne TPS43"
+
+config ZMK_SPLIT_ROLE_CENTRAL
+    default y
+
+endif
+
+if SHIELD_CORNE_TPS43_RIGHT
+
+config ZMK_KEYBOARD_NAME
+    default "Corne TPS43"
+
+endif
+
+if SHIELD_CORNE_TPS43_LEFT || SHIELD_CORNE_TPS43_RIGHT
+
+config ZMK_SPLIT
+    default y
+
+endif 

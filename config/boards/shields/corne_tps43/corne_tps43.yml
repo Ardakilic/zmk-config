@@ -1,0 +1,17 @@
+file_format: "1"
+id: corne_tps43
+name: Corne TPS43
+type: shield
+url: https://github.com/foostan/crkbd
+requires: [pro_micro]
+features:
+  - keys
+  - display
+  - trackpad
+  - encoder
+variants:
+  - board: nice_nano_v2
+  - board: nice_nano
+siblings:
+  - corne_tps43_left
+  - corne_tps43_right 

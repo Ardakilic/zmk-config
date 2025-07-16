@@ -1,6 +1,6 @@
-description: Azoteq TPS65 Trackpad with IQS550 controller
+description: Azoteq TPS43 Trackpad with IQS572 controller
 
-compatible: "azoteq,tps65"
+compatible: "azoteq,tps43"
 
 include: [sensor-device.yaml, i2c-device.yaml]
 
@@ -17,15 +17,15 @@ properties:
 
   max-x:
     type: int
-    default: 3072
+    default: 2048
     description: |
-      Maximum X coordinate value (TPS65 resolution: 3072 x 2048)
+      Maximum X coordinate value (TPS43 resolution: 2048 x 1792)
 
   max-y:
     type: int
-    default: 2048
+    default: 1792
     description: |
-      Maximum Y coordinate value (TPS65 resolution: 3072 x 2048)
+      Maximum Y coordinate value (TPS43 resolution: 2048 x 1792)
 
   max-touch-points:
     type: int
@@ -35,19 +35,19 @@ properties:
 
   variant:
     type: string
-    default: "65mm"
+    default: "43mm"
     description: |
-      TPS65 trackpad variant (65mm x 49mm)
+      TPS43 trackpad variant (43mm x 40mm)
 
   resolution-x:
     type: int
-    default: 3072
+    default: 2048
     description: |
       X-axis resolution in counts per inch
 
   resolution-y:
     type: int
-    default: 2048
+    default: 1792
     description: |
       Y-axis resolution in counts per inch
 
@@ -78,19 +78,4 @@ properties:
     type: int
     default: 10
     description: |
-      I2C communication timeout in milliseconds
-
-  invert-x:
-    type: boolean
-    description: |
-      Invert X-axis coordinates
-
-  invert-y:
-    type: boolean
-    description: |
-      Invert Y-axis coordinates
-
-  swap-axes:
-    type: boolean
-    description: |
-      Swap X and Y axes 
+      I2C communication timeout in milliseconds 

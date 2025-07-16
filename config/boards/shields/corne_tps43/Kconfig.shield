@@ -1,0 +1,10 @@
+# Copyright (c) 2025 The ZMK Contributors
+# SPDX-License-Identifier: MIT
+
+rsource "../../../drivers/sensor/Kconfig"
+
+config SHIELD_CORNE_TPS43_LEFT
+    def_bool $(shields_list_contains,corne_tps43_left)
+
+config SHIELD_CORNE_TPS43_RIGHT
+    def_bool $(shields_list_contains,corne_tps43_right) 

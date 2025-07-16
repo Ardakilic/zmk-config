@@ -1,0 +1,75 @@
+/*
+ * Copyright (c) 2025 The ZMK Contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+/*
+ * TPS43 Trackpad Sample Overlay
+ * 
+ * This overlay demonstrates how to configure the Azoteq TPS43 trackpad
+ * with IQS572 controller for use with ZMK firmware.
+ * 
+ * Hardware connections required:
+ * - I2C SDA/SCL to the controller's I2C bus
+ * - RDY pin connected to a GPIO for interrupt-driven mode (optional)
+ * - RST pin connected to a GPIO for hardware reset (recommended)
+ * - VCC: 1.65V to 3.6V
+ * - GND: Ground
+ */
+
+&pro_micro_i2c {
+    status = "okay";
+    
+    tps43_trackpad: trackpad@74 {
+        compatible = "azoteq,tps43";
+        reg = <0x74>;
+        
+        /* Device variant and resolution */
+        variant = "43mm";                    /* 43mm x 40mm trackpad */
+        resolution-x = <2048>;               /* X-axis resolution */
+        resolution-y = <1792>;               /* Y-axis resolution */
+        max-x = <2048>;                      /* Maximum X coordinate */
+        max-y = <1792>;                      /* Maximum Y coordinate */
+        
+        /* GPIO connections (adjust pin numbers for your board) */
+        rdy-gpios = <&pro_micro 8 GPIO_ACTIVE_HIGH>;  /* Ready/interrupt pin */
+        rst-gpios = <&pro_micro 9 GPIO_ACTIVE_HIGH>;  /* Reset pin */
+        
+        /* Touch detection settings */
+        touch-threshold = <40>;              /* Touch sensitivity (lower = more sensitive) */
+        max-touches = <5>;                   /* Maximum simultaneous touches */
+        max-touch-points = <5>;              /* Same as max-touches */
+        palm-reject-threshold = <100>;       /* Ignore touches larger than this */
+        
+        /* Feature enablement */
+        gesture-enable;                      /* Enable gesture recognition */
+        
+        /* Communication settings */
+        i2c-timeout-ms = <10>;               /* I2C timeout in milliseconds */
+    };
+};
+
+/*
+ * Alternative configuration for polling mode (without RDY pin):
+ *
+ * &pro_micro_i2c {
+ *     status = "okay";
+ *     
+ *     tps43_trackpad: trackpad@74 {
+ *         compatible = "azoteq,tps43";
+ *         reg = <0x74>;
+ *         
+ *         variant = "43mm";
+ *         resolution-x = <2048>;
+ *         resolution-y = <1792>;
+ *         
+ *         // Only reset pin, no ready pin for polling mode
+ *         rst-gpios = <&pro_micro 9 GPIO_ACTIVE_HIGH>;
+ *         
+ *         touch-threshold = <40>;
+ *         max-touches = <5>;
+ *         gesture-enable;
+ *     };
+ * };
+ */ 

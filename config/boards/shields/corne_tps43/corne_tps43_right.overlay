@@ -1,0 +1,57 @@
+/*
+ * Copyright (c) 2025 The ZMK Contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+#include "corne_tps43.dtsi"
+
+&default_transform {
+    col-offset = <6>;
+};
+
+&kscan0 {
+    col-gpios
+        = <&pro_micro 10 GPIO_ACTIVE_HIGH>
+        , <&pro_micro 16 GPIO_ACTIVE_HIGH>
+        , <&pro_micro 14 GPIO_ACTIVE_HIGH>
+        , <&pro_micro 15 GPIO_ACTIVE_HIGH>
+        , <&pro_micro 18 GPIO_ACTIVE_HIGH>
+        , <&pro_micro 19 GPIO_ACTIVE_HIGH>
+        ;
+};
+
+&right_encoder {
+    status = "okay";
+};
+
+&pro_micro_i2c {
+    status = "okay";
+    
+    tps43: trackpad@74 {
+        compatible = "azoteq,tps43";
+        reg = <0x74>;
+        
+        /* 43mm trackpad variant per datasheet */
+        variant = "43mm";
+        
+        /* Resolution per TPS43 datasheet: 2048 x 1792 */
+        resolution-x = <2048>;
+        resolution-y = <1792>;
+        
+        /* GPIO connections for trackpad control */
+        rdy-gpios = <&pro_micro 8 GPIO_ACTIVE_HIGH>;  /* RDY pin for interrupt mode */
+        rst-gpios = <&pro_micro 9 GPIO_ACTIVE_HIGH>;  /* RST pin for hardware reset */
+        
+        /* Touch sensitivity and behavior */
+        touch-threshold = <40>;        /* Lower = more sensitive */
+        max-touches = <5>;             /* 1-5 simultaneous touches */
+        palm-reject-threshold = <100>; /* Ignore touches larger than this */
+        
+        /* Enable gesture recognition */
+        gesture-enable;
+        
+        /* Communication timeout */
+        i2c-timeout-ms = <10>;
+    };
+}; 

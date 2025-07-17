@@ -22,280 +22,461 @@ LOG_MODULE_REGISTER(tps65, CONFIG_SENSOR_LOG_LEVEL);
 // Gesture-related code would go here
 #endif
 
-static void tps65_poll_handler(struct k_timer *timer)
+/* Forward declarations */
+static int tps65_device_init(const struct device *dev);
+static int tps65_device_reset(const struct device *dev);
+static int tps65_verify_device_id(const struct device *dev);
+static int tps65_configure_device(const struct device *dev);
+
+struct tps65_data {
+    struct k_work_delayable work;
+    struct k_mutex lock;
+    const struct device *dev;
+    
+    /* Touch data */
+    int16_t x;
+    int16_t y;
+    uint8_t touch_state;
+    uint8_t touch_strength;
+    
+    /* Device state */
+    bool device_ready;
+    bool initialized;
+    uint8_t error_count;
+    
+    /* GPIO callback */
+    struct gpio_callback gpio_cb;
+    
+    /* Callbacks */
+    sensor_trigger_handler_t trigger_handler;
+    const struct sensor_trigger *trigger;
+};
+
+struct tps65_config {
+    struct i2c_dt_spec i2c;
+    struct gpio_dt_spec int_gpio;
+    struct gpio_dt_spec rst_gpio;
+    uint8_t resolution_x;
+    uint8_t resolution_y;
+    bool invert_x;
+    bool invert_y;
+    bool swap_xy;
+};
+
+/* I2C helper functions with error recovery */
+static int tps65_i2c_read_reg(const struct device *dev, uint8_t reg, uint8_t *data, size_t len)
 {
-    struct tps65_data *data = CONTAINER_OF(timer, struct tps65_data, poll_timer);
-    k_work_submit(&data->work);
+    const struct tps65_config *config = dev->config;
+    int ret;
+    
+    /* Add small delay to prevent I2C bus flooding */
+    k_msleep(1);
+    
+    ret = i2c_write_read_dt(&config->i2c, &reg, 1, data, len);
+    if (ret < 0) {
+        LOG_ERR("Failed to read register 0x%02x: %d", reg, ret);
+        return ret;
+    }
+    
+    return 0;
 }
 
-static void tps65_work_handler(struct k_work *work)
+static int tps65_i2c_write_reg(const struct device *dev, uint8_t reg, uint8_t *data, size_t len)
 {
-	struct tps65_data *data = CONTAINER_OF(work, struct tps65_data, work);
-	const struct device *dev = data->dev;
-	const struct tps65_config *config = dev->config;
-	uint8_t status;
-	int ret;
-
-	/* Read status register */
-	ret = i2c_reg_read_byte_dt(&config->i2c, TPS65_REG_TOUCH_STATUS, &status);
-	if (ret < 0) {
-		LOG_ERR("Failed to read status register: %d", ret);
-		return;
-	}
-
-	if (status & TPS65_TOUCH_EVENT) {
-		/* Read touch data */
-		uint8_t xy_info[2];
-		ret = i2c_burst_read_dt(&config->i2c, TPS65_REG_XY_INFO_0, xy_info, sizeof(xy_info));
-		if (ret < 0) {
-			LOG_ERR("Failed to read XY info: %d", ret);
-			return;
-		}
-
-		data->num_touches = xy_info[0] & 0x0F;
-		if (data->num_touches > CONFIG_ZMK_SENSOR_TPS65_MAX_TOUCHES) {
-			data->num_touches = CONFIG_ZMK_SENSOR_TPS65_MAX_TOUCHES;
-		}
-
-		/* Read coordinate data for each touch */
-		for (int i = 0; i < data->num_touches; i++) {
-			uint8_t coord_data[6];
-			ret = i2c_burst_read_dt(&config->i2c, 
-				TPS65_REG_COORDINATES_X + (i * 6), 
-				coord_data, sizeof(coord_data));
-			if (ret < 0) {
-				LOG_ERR("Failed to read coordinates for touch %d: %d", i, ret);
-				continue;
-			}
-
-			/* Parse coordinates (little endian) */
-			data->x[i] = sys_get_le16(&coord_data[0]);
-			data->y[i] = sys_get_le16(&coord_data[2]);
-			data->touch_strength[i] = coord_data[4];
-			data->touch_area[i] = coord_data[5];
-
-			/* Clamp to maximum values */
-			if (data->x[i] > config->max_x) data->x[i] = config->max_x;
-			if (data->y[i] > config->max_y) data->y[i] = config->max_y;
-		}
-
-		LOG_DBG("Touch event: %d touches", data->num_touches);
-		for (int i = 0; i < data->num_touches; i++) {
-			LOG_DBG("Touch %d: (%d, %d) strength=%d area=%d", 
-				i, data->x[i], data->y[i], 
-				data->touch_strength[i], data->touch_area[i]);
-		}
-	}
-
-	k_sem_give(&data->sem);
+    const struct tps65_config *config = dev->config;
+    uint8_t buffer[len + 1];
+    int ret;
+    
+    buffer[0] = reg;
+    memcpy(&buffer[1], data, len);
+    
+    /* Add small delay to prevent I2C bus flooding */
+    k_msleep(1);
+    
+    ret = i2c_write_dt(&config->i2c, buffer, len + 1);
+    if (ret < 0) {
+        LOG_ERR("Failed to write register 0x%02x: %d", reg, ret);
+        return ret;
+    }
+    
+    return 0;
 }
 
-static void tps65_ready_callback(const struct device *gpio_dev,
-				 struct gpio_callback *cb, uint32_t pins)
+static int tps65_verify_device_id(const struct device *dev)
 {
-	struct tps65_data *data = CONTAINER_OF(cb, struct tps65_data, ready_cb);
-
-	k_work_submit(&data->work);
+    uint8_t device_info[2];
+    int ret;
+    
+    ret = tps65_i2c_read_reg(dev, TPS65_REG_DEVICE_INFO, device_info, 2);
+    if (ret < 0) {
+        LOG_ERR("Failed to read device info");
+        return ret;
+    }
+    
+    uint16_t product_id = sys_get_le16(device_info);
+    LOG_INF("Device Product ID: 0x%04x", product_id);
+    
+    /* IQS550 should return specific product ID */
+    if (product_id != TPS65_EXPECTED_PRODUCT_ID) {
+        LOG_WRN("Unexpected product ID: 0x%04x, expected: 0x%04x", 
+                product_id, TPS65_EXPECTED_PRODUCT_ID);
+        /* Don't fail completely - some variants might have different IDs */
+    }
+    
+    return 0;
 }
 
-static int tps65_reset_device(const struct device *dev)
+static int tps65_device_reset(const struct device *dev)
 {
-	const struct tps65_config *config = dev->config;
-	int ret;
-
-	if (!gpio_is_ready_dt(&config->reset_gpio)) {
-		LOG_ERR("Reset GPIO not ready");
-		return -ENODEV;
-	}
-
-	/* Reset sequence: Low -> High */
-	ret = gpio_pin_set_dt(&config->reset_gpio, 0);
-	if (ret < 0) {
-		return ret;
-	}
-
-	k_msleep(10);
-
-	ret = gpio_pin_set_dt(&config->reset_gpio, 1);
-	if (ret < 0) {
-		return ret;
-	}
-
-	k_msleep(100); /* Wait for reset to complete */
-
-	return 0;
+    const struct tps65_config *config = dev->config;
+    struct tps65_data *data = dev->data;
+    
+    if (!gpio_is_ready_dt(&config->rst_gpio)) {
+        LOG_ERR("Reset GPIO not ready");
+        return -ENODEV;
+    }
+    
+    LOG_INF("Performing hardware reset");
+    
+    /* Reset sequence: LOW -> wait -> HIGH -> wait */
+    gpio_pin_set_dt(&config->rst_gpio, 0);
+    k_msleep(10);
+    gpio_pin_set_dt(&config->rst_gpio, 1);
+    k_msleep(50); /* Allow device to boot */
+    
+    /* Reset driver state */
+    data->device_ready = false;
+    data->error_count = 0;
+    data->x = 0;
+    data->y = 0;
+    data->touch_state = 0;
+    
+    return 0;
 }
 
 static int tps65_configure_device(const struct device *dev)
 {
-	const struct tps65_config *config = dev->config;
-	int ret;
-
-	/* Basic configuration for IQS550 */
-	uint8_t prox_settings[] = {0x01, 0x00}; /* Enable proximity */
-	ret = i2c_burst_write_dt(&config->i2c, TPS65_REG_PROX_SETTINGS, 
-				 prox_settings, sizeof(prox_settings));
-	if (ret < 0) {
-		LOG_ERR("Failed to configure proximity settings: %d", ret);
-		return ret;
-	}
-
-	/* Configure touch thresholds */
-	uint8_t thresholds[] = {CONFIG_ZMK_SENSOR_TPS65_SENSITIVITY, 0x08}; /* Touch threshold, proximity threshold */
-	ret = i2c_burst_write_dt(&config->i2c, TPS65_REG_THRESHOLDS, 
-				 thresholds, sizeof(thresholds));
-	if (ret < 0) {
-		LOG_ERR("Failed to configure thresholds: %d", ret);
-		return ret;
-	}
-
-	return 0;
-}
-
-int tps65_init(const struct device *dev)
-{
-	const struct tps65_config *config = dev->config;
-	struct tps65_data *data = dev->data;
-	int ret;
-
-	LOG_INF("Initializing TPS65 trackpad");
-
-	data->dev = dev;
-	k_sem_init(&data->sem, 0, 1);
-	k_work_init(&data->work, tps65_work_handler);
-    k_timer_init(&data->poll_timer, tps65_poll_handler, NULL);
-
-	/* Check I2C bus */
-	if (!i2c_is_ready_dt(&config->i2c)) {
-		LOG_ERR("I2C bus not ready");
-		return -ENODEV;
-	}
-
-	/* Reset device */
-	ret = tps65_reset_device(dev);
-	if (ret < 0) {
-		LOG_ERR("Failed to reset device: %d", ret);
-		return ret;
-	}
-
-	/* Verify device presence */
-	uint8_t device_info;
-	ret = i2c_reg_read_byte_dt(&config->i2c, TPS65_REG_DEVICE_INFO, &device_info);
-	if (ret < 0) {
-		LOG_ERR("Failed to read device info: %d", ret);
-		return ret;
-	}
-
-	LOG_INF("TPS65 device info: 0x%02x", device_info);
-
-	/* Configure device */
-	ret = tps65_configure_device(dev);
-	if (ret < 0) {
-		LOG_ERR("Failed to configure device: %d", ret);
-		return ret;
-	}
-
-	/* Setup ready GPIO interrupt */
-	if (gpio_is_ready_dt(&config->ready_gpio)) {
-		ret = gpio_pin_configure_dt(&config->ready_gpio, GPIO_INPUT);
-		if (ret < 0) {
-			LOG_ERR("Failed to configure ready GPIO: %d", ret);
-			return ret;
-		}
-
-		ret = gpio_pin_interrupt_configure_dt(&config->ready_gpio, GPIO_INT_EDGE_TO_ACTIVE);
-		if (ret < 0) {
-			LOG_ERR("Failed to configure ready interrupt: %d", ret);
-			return ret;
-		}
-
-		gpio_init_callback(&data->ready_cb, tps65_ready_callback, 
-				   BIT(config->ready_gpio.pin));
-		
-		ret = gpio_add_callback(config->ready_gpio.port, &data->ready_cb);
-		if (ret < 0) {
-			LOG_ERR("Failed to add ready callback: %d", ret);
-			return ret;
-		}
-	} else {
-        k_timer_start(&data->poll_timer, K_MSEC(CONFIG_ZMK_SENSOR_TPS65_POLL_RATE_MS), K_MSEC(CONFIG_ZMK_SENSOR_TPS65_POLL_RATE_MS));
+    const struct tps65_config *config = dev->config;
+    uint8_t sys_cfg[2];
+    int ret;
+    
+    /* Read current system configuration */
+    ret = tps65_i2c_read_reg(dev, TPS65_REG_SYS_CONFIG_0, sys_cfg, 2);
+    if (ret < 0) {
+        LOG_ERR("Failed to read system config");
+        return ret;
     }
-
-	LOG_INF("TPS65 initialized successfully");
-	return 0;
+    
+    /* Configure based on DT properties */
+    if (config->invert_x) {
+        sys_cfg[0] |= TPS65_SYS_CFG_FLIP_X;
+    }
+    if (config->invert_y) {
+        sys_cfg[0] |= TPS65_SYS_CFG_FLIP_Y;
+    }
+    if (config->swap_xy) {
+        sys_cfg[0] |= TPS65_SYS_CFG_SWITCH_XY;
+    }
+    
+    /* Enable touch and proximity detection */
+    sys_cfg[1] |= TPS65_SYS_CFG_TP_EVENT | TPS65_SYS_CFG_PROX_EVENT;
+    
+    ret = tps65_i2c_write_reg(dev, TPS65_REG_SYS_CONFIG_0, sys_cfg, 2);
+    if (ret < 0) {
+        LOG_ERR("Failed to write system config");
+        return ret;
+    }
+    
+    /* Set resolution if specified */
+    if (config->resolution_x > 0 || config->resolution_y > 0) {
+        uint8_t res_cfg[4];
+        sys_put_le16(config->resolution_x ? config->resolution_x : 1024, &res_cfg[0]);
+        sys_put_le16(config->resolution_y ? config->resolution_y : 1024, &res_cfg[2]);
+        
+        ret = tps65_i2c_write_reg(dev, TPS65_REG_X_RESOLUTION, res_cfg, 4);
+        if (ret < 0) {
+            LOG_ERR("Failed to set resolution");
+            return ret;
+        }
+    }
+    
+    LOG_INF("Device configured successfully");
+    return 0;
 }
 
-int tps65_sample_fetch(const struct device *dev, enum sensor_channel chan)
+static int tps65_device_init(const struct device *dev)
 {
-	struct tps65_data *data = dev->data;
-
-	if (chan != SENSOR_CHAN_ALL && chan != SENSOR_CHAN_POS_XY) {
-		return -ENOTSUP;
-	}
-
-	return k_sem_take(&data->sem, K_MSEC(CONFIG_ZMK_SENSOR_TPS65_POLL_RATE_MS));
+    struct tps65_data *data = dev->data;
+    int ret;
+    
+    /* Reset device first */
+    ret = tps65_device_reset(dev);
+    if (ret < 0) {
+        LOG_ERR("Device reset failed");
+        return ret;
+    }
+    
+    /* Verify device ID */
+    ret = tps65_verify_device_id(dev);
+    if (ret < 0) {
+        LOG_ERR("Device verification failed");
+        return ret;
+    }
+    
+    /* Configure device */
+    ret = tps65_configure_device(dev);
+    if (ret < 0) {
+        LOG_ERR("Device configuration failed");
+        return ret;
+    }
+    
+    data->device_ready = true;
+    data->initialized = true;
+    
+    LOG_INF("TPS65 device initialized successfully");
+    return 0;
 }
 
-int tps65_channel_get(const struct device *dev, enum sensor_channel chan,
-		      struct sensor_value *val)
+static int tps65_read_touch_data(const struct device *dev)
 {
-	struct tps65_data *data = dev->data;
+    struct tps65_data *data = dev->data;
+    uint8_t touch_data[8];
+    int ret;
+    
+    if (!data->device_ready) {
+        return -ENODEV;
+    }
+    
+    /* Read XY info and coordinates in one transaction */
+    ret = tps65_i2c_read_reg(dev, TPS65_REG_XY_INFO_0, touch_data, 8);
+    if (ret < 0) {
+        LOG_ERR("Failed to read touch data");
+        data->error_count++;
+        if (data->error_count > TPS65_MAX_ERROR_COUNT) {
+            LOG_WRN("Too many errors, reinitializing device");
+            data->device_ready = false;
+            k_work_reschedule(&data->work, K_MSEC(100));
+        }
+        return ret;
+    }
+    
+    /* Reset error count on successful read */
+    data->error_count = 0;
+    
+    /* Parse touch data */
+    uint8_t xy_info = touch_data[0];
+    data->touch_state = (xy_info & TPS65_XY_INFO_TOUCH_MASK) ? 1 : 0;
+    
+    if (data->touch_state) {
+        /* Extract coordinates */
+        data->x = sys_get_le16(&touch_data[4]);
+        data->y = sys_get_le16(&touch_data[6]);
+        data->touch_strength = touch_data[2];
+        
+        LOG_DBG("Touch: x=%d, y=%d, strength=%d", data->x, data->y, data->touch_strength);
+    }
+    
+    return 0;
+}
 
-	switch (chan) {
-	case SENSOR_CHAN_POS_X:
-		if (data->num_touches > 0) {
-			val->val1 = data->x[0];
-			val->val2 = 0;
-		} else {
-			val->val1 = 0;
-			val->val2 = 0;
-		}
-		break;
+static void tps65_work_handler(struct k_work *work)
+{
+    struct k_work_delayable *delayable_work = k_work_delayable_from_work(work);
+    struct tps65_data *data = CONTAINER_OF(delayable_work, struct tps65_data, work);
+    const struct device *dev = data->dev;
+    int ret;
+    
+    k_mutex_lock(&data->lock, K_FOREVER);
+    
+    /* Reinitialize device if needed */
+    if (!data->device_ready) {
+        LOG_INF("Reinitializing device");
+        ret = tps65_device_init(dev);
+        if (ret < 0) {
+            LOG_ERR("Device reinitialization failed");
+            k_mutex_unlock(&data->lock);
+            /* Retry after longer delay */
+            k_work_reschedule(&data->work, K_MSEC(1000));
+            return;
+        }
+    }
+    
+    /* Read touch data */
+    ret = tps65_read_touch_data(dev);
+    if (ret < 0) {
+        k_mutex_unlock(&data->lock);
+        return;
+    }
+    
+    /* Trigger callback if configured */
+    if (data->trigger_handler && data->trigger) {
+        data->trigger_handler(dev, data->trigger);
+    }
+    
+    k_mutex_unlock(&data->lock);
+}
 
-	case SENSOR_CHAN_POS_Y:
-		if (data->num_touches > 0) {
-			val->val1 = data->y[0];
-			val->val2 = 0;
-		} else {
-			val->val1 = 0;
-			val->val2 = 0;
-		}
-		break;
+static void tps65_gpio_callback(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
+{
+    struct tps65_data *data = CONTAINER_OF(cb, struct tps65_data, gpio_cb);
+    
+    /* Schedule work to handle interrupt in work queue context */
+    k_work_reschedule(&data->work, K_NO_WAIT);
+}
 
-	case SENSOR_CHAN_PRESS:
-		val->val1 = data->num_touches;
-		val->val2 = 0;
-		break;
+static int tps65_sample_fetch(const struct device *dev, enum sensor_channel chan)
+{
+    struct tps65_data *data = dev->data;
+    int ret;
+    
+    if (chan != SENSOR_CHAN_ALL && chan != SENSOR_CHAN_POS_DX && chan != SENSOR_CHAN_POS_DY) {
+        return -ENOTSUP;
+    }
+    
+    k_mutex_lock(&data->lock, K_FOREVER);
+    ret = tps65_read_touch_data(dev);
+    k_mutex_unlock(&data->lock);
+    
+    return ret;
+}
 
-	default:
-		return -ENOTSUP;
-	}
+static int tps65_channel_get(const struct device *dev, enum sensor_channel chan, struct sensor_value *val)
+{
+    struct tps65_data *data = dev->data;
+    
+    k_mutex_lock(&data->lock, K_FOREVER);
+    
+    switch (chan) {
+    case SENSOR_CHAN_POS_DX:
+        val->val1 = data->x;
+        val->val2 = 0;
+        break;
+    case SENSOR_CHAN_POS_DY:
+        val->val1 = data->y;
+        val->val2 = 0;
+        break;
+    default:
+        k_mutex_unlock(&data->lock);
+        return -ENOTSUP;
+    }
+    
+    k_mutex_unlock(&data->lock);
+    return 0;
+}
 
-	return 0;
+static int tps65_trigger_set(const struct device *dev, const struct sensor_trigger *trig,
+                           sensor_trigger_handler_t handler)
+{
+    struct tps65_data *data = dev->data;
+    const struct tps65_config *config = dev->config;
+    int ret = 0;
+    
+    k_mutex_lock(&data->lock, K_FOREVER);
+    
+    if (trig->type != SENSOR_TRIG_DATA_READY) {
+        ret = -ENOTSUP;
+        goto unlock;
+    }
+    
+    data->trigger_handler = handler;
+    data->trigger = trig;
+    
+    if (handler) {
+        /* Enable interrupt */
+        ret = gpio_pin_interrupt_configure_dt(&config->int_gpio, GPIO_INT_EDGE_FALLING);
+        if (ret < 0) {
+            LOG_ERR("Failed to configure interrupt");
+            goto unlock;
+        }
+    } else {
+        /* Disable interrupt */
+        ret = gpio_pin_interrupt_configure_dt(&config->int_gpio, GPIO_INT_DISABLE);
+    }
+    
+unlock:
+    k_mutex_unlock(&data->lock);
+    return ret;
 }
 
 static const struct sensor_driver_api tps65_driver_api = {
-	.sample_fetch = tps65_sample_fetch,
-	.channel_get = tps65_channel_get,
+    .sample_fetch = tps65_sample_fetch,
+    .channel_get = tps65_channel_get,
+    .trigger_set = tps65_trigger_set,
 };
 
-#define TPS65_INIT(inst)						\
-	static struct tps65_data tps65_data_##inst;			\
-									\
-	static const struct tps65_config tps65_config_##inst = {	\
-		.i2c = I2C_DT_SPEC_INST_GET(inst),			\
-		.ready_gpio = GPIO_DT_SPEC_INST_GET_OR(inst, rdy_gpios, {}), \
-		.reset_gpio = GPIO_DT_SPEC_INST_GET_OR(inst, rst_gpios, {}), \
-		.max_x = DT_INST_PROP_OR(inst, max_x, TPS65_MAX_X),	\
-		.max_y = DT_INST_PROP_OR(inst, max_y, TPS65_MAX_Y),	\
-		.max_touch_points = DT_INST_PROP_OR(inst, max_touch_points, TPS65_MAX_TOUCH_POINTS), \
-	};								\
-									\
-	SENSOR_DEVICE_DT_INST_DEFINE(inst, tps65_init, NULL,		\
-				      &tps65_data_##inst,		\
-				      &tps65_config_##inst,		\
-				      POST_KERNEL,			\
-				      CONFIG_SENSOR_INIT_PRIORITY,	\
-				      &tps65_driver_api);
+static int tps65_init(const struct device *dev)
+{
+    struct tps65_data *data = dev->data;
+    const struct tps65_config *config = dev->config;
+    int ret;
+    
+    data->dev = dev;
+    
+    /* Initialize mutex */
+    k_mutex_init(&data->lock);
+    
+    /* Initialize work queue */
+    k_work_init_delayable(&data->work, tps65_work_handler);
+    
+    /* Check I2C bus readiness */
+    if (!i2c_is_ready_dt(&config->i2c)) {
+        LOG_ERR("I2C bus not ready");
+        return -ENODEV;
+    }
+    
+    /* Configure reset GPIO */
+    if (gpio_is_ready_dt(&config->rst_gpio)) {
+        ret = gpio_pin_configure_dt(&config->rst_gpio, GPIO_OUTPUT_ACTIVE);
+        if (ret < 0) {
+            LOG_ERR("Failed to configure reset GPIO: %d", ret);
+            return ret;
+        }
+    }
+    
+    /* Configure interrupt GPIO */
+    if (gpio_is_ready_dt(&config->int_gpio)) {
+        ret = gpio_pin_configure_dt(&config->int_gpio, GPIO_INPUT);
+        if (ret < 0) {
+            LOG_ERR("Failed to configure interrupt GPIO: %d", ret);
+            return ret;
+        }
+        
+        gpio_init_callback(&data->gpio_cb, tps65_gpio_callback, BIT(config->int_gpio.pin));
+        ret = gpio_add_callback(config->int_gpio.port, &data->gpio_cb);
+        if (ret < 0) {
+            LOG_ERR("Failed to add GPIO callback: %d", ret);
+            return ret;
+        }
+    }
+    
+    /* Initialize device */
+    ret = tps65_device_init(dev);
+    if (ret < 0) {
+        LOG_ERR("Device initialization failed: %d", ret);
+        return ret;
+    }
+    
+    LOG_INF("TPS65 driver initialized successfully");
+    return 0;
+}
 
-DT_INST_FOREACH_STATUS_OKAY(TPS65_INIT) 
+#define TPS65_DEFINE(inst)                                                    \
+    static struct tps65_data tps65_data_##inst;                             \
+                                                                             \
+    static const struct tps65_config tps65_config_##inst = {                \
+        .i2c = I2C_DT_SPEC_INST_GET(inst),                                 \
+        .int_gpio = GPIO_DT_SPEC_INST_GET_OR(inst, int_gpios, {0}),        \
+        .rst_gpio = GPIO_DT_SPEC_INST_GET_OR(inst, rst_gpios, {0}),        \
+        .resolution_x = DT_INST_PROP_OR(inst, resolution_x, 0),            \
+        .resolution_y = DT_INST_PROP_OR(inst, resolution_y, 0),            \
+        .invert_x = DT_INST_PROP(inst, invert_x),                          \
+        .invert_y = DT_INST_PROP(inst, invert_y),                          \
+        .swap_xy = DT_INST_PROP(inst, swap_xy),                            \
+    };                                                                       \
+                                                                             \
+    SENSOR_DEVICE_DT_INST_DEFINE(inst, tps65_init, NULL,                   \
+                                &tps65_data_##inst, &tps65_config_##inst,   \
+                                POST_KERNEL, CONFIG_SENSOR_INIT_PRIORITY,    \
+                                &tps65_driver_api);
+
+DT_INST_FOREACH_STATUS_OKAY(TPS65_DEFINE) 

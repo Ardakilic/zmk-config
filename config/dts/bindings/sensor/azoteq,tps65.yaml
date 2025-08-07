@@ -1,96 +1,97 @@
-description: Azoteq TPS65 Trackpad with IQS550 controller
+description: Azoteq TPS65 trackpad with IQS550 controller
 
 compatible: "azoteq,tps65"
 
 include: [sensor-device.yaml, i2c-device.yaml]
 
 properties:
+  variant:
+    type: string
+    description: |
+      Trackpad variant specification (e.g., "65mm" for 65mm trackpad).
+      
   rdy-gpios:
     type: phandle-array
     description: |
-      Ready GPIO. This pin is driven high when the device has data available.
-
-  rst-gpios:
+      Ready/Interrupt GPIO pin. This pin is asserted when touch data is available.
+      
+  int-gpios:
     type: phandle-array
     description: |
-      Reset GPIO. This pin is used to reset the device.
-
-  max-x:
-    type: int
-    default: 3072
+      Interrupt GPIO pin. This pin is asserted when touch data is available.
+      
+  rst-gpios:
+    type: phandle-array  
     description: |
-      Maximum X coordinate value (TPS65 resolution: 3072 x 2048)
-
-  max-y:
-    type: int
-    default: 2048
-    description: |
-      Maximum Y coordinate value (TPS65 resolution: 3072 x 2048)
-
-  max-touch-points:
-    type: int
-    default: 5
-    description: |
-      Maximum number of simultaneous touches supported
-
-  variant:
-    type: string
-    default: "65mm"
-    description: |
-      TPS65 trackpad variant (65mm x 49mm)
-
+      Reset GPIO pin. Used to reset the device during initialization.
+      
   resolution-x:
     type: int
-    default: 3072
     description: |
-      X-axis resolution in counts per inch
-
+      X resolution of the trackpad in counts. If not specified, defaults to 1024.
+      
   resolution-y:
     type: int
-    default: 2048
     description: |
-      Y-axis resolution in counts per inch
-
+      Y resolution of the trackpad in counts. If not specified, defaults to 1024.
+      
   touch-threshold:
     type: int
     default: 40
     description: |
-      Touch detection threshold (lower = more sensitive)
-
+      Touch detection threshold. Lower values are more sensitive.
+      
   max-touches:
     type: int
     default: 5
     description: |
-      Maximum number of simultaneous touches
-
+      Maximum number of simultaneous touches (1-5).
+      
   palm-reject-threshold:
     type: int
     default: 100
     description: |
-      Palm rejection threshold (ignore touches larger than this)
-
+      Palm rejection threshold. Touches larger than this value are ignored.
+      
   gesture-enable:
     type: boolean
     description: |
-      Enable gesture recognition support
-
+      Enable gesture recognition support.
+      
   i2c-timeout-ms:
     type: int
     default: 10
     description: |
-      I2C communication timeout in milliseconds
-
+      I2C communication timeout in milliseconds.
+      
   invert-x:
     type: boolean
     description: |
-      Invert X-axis coordinates
-
+      If present, invert X coordinate values.
+      
   invert-y:
     type: boolean
     description: |
-      Invert Y-axis coordinates
-
-  swap-axes:
+      If present, invert Y coordinate values.
+      
+  swap-xy:
     type: boolean
     description: |
-      Swap X and Y axes 
+      If present, swap X and Y coordinates.
+      
+  sensitivity:
+    type: int
+    default: 128
+    description: |
+      Touch sensitivity threshold (0-255). Higher values require more pressure.
+      
+  debounce-ms:
+    type: int
+    default: 50
+    description: |
+      Debounce time in milliseconds for touch events.
+      
+  gesture-support:
+    type: boolean
+    description: |
+      Enable gesture recognition support (experimental). 

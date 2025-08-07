@@ -103,10 +103,17 @@ static int tps43_reset_device(const struct device *dev)
 	const struct tps43_config *config = dev->config;
 	int ret;
 
-	if (!gpio_is_ready_dt(&config->reset_gpio)) {
-		LOG_ERR("Reset GPIO not ready");
-		return -ENODEV;
-	}
+    if (!gpio_is_ready_dt(&config->reset_gpio)) {
+        /* Reset pin not provided; rely on internal POR */
+        return 0;
+    }
+
+    /* Ensure pin is configured as output */
+    ret = gpio_pin_configure_dt(&config->reset_gpio, GPIO_OUTPUT_HIGH);
+    if (ret < 0) {
+        LOG_ERR("Failed to configure reset GPIO: %d", ret);
+        return ret;
+    }
 
 	/* Reset sequence: Low -> High */
 	ret = gpio_pin_set_dt(&config->reset_gpio, 0);
@@ -217,9 +224,10 @@ int tps43_init(const struct device *dev)
 			LOG_ERR("Failed to add ready callback: %d", ret);
 			return ret;
 		}
-	} else {
-        k_timer_start(&data->poll_timer, K_MSEC(CONFIG_ZMK_SENSOR_TPS43_POLL_RATE_MS), K_MSEC(CONFIG_ZMK_SENSOR_TPS43_POLL_RATE_MS));
     }
+
+    /* Always start poll timer as a fallback; interrupt will schedule work sooner */
+    k_timer_start(&data->poll_timer, K_MSEC(CONFIG_ZMK_SENSOR_TPS43_POLL_RATE_MS), K_MSEC(CONFIG_ZMK_SENSOR_TPS43_POLL_RATE_MS));
 
 	LOG_INF("TPS43 initialized successfully");
 	return 0;

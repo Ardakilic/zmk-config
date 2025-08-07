@@ -1,0 +1,6 @@
+name: zmk-config-azoteq
+build:
+  cmake: ..
+  kconfig: ../Kconfig
+  dts_root: ..
+

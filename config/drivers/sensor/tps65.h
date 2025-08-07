@@ -53,6 +53,7 @@ struct tps65_config {
 	struct gpio_dt_spec reset_gpio;
 	uint16_t max_x;
 	uint16_t max_y;
+    uint8_t max_touch_points;
 };
 
 struct tps65_data {

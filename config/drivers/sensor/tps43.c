@@ -27,6 +27,7 @@ static int tps43_device_init(const struct device *dev);
 static int tps43_device_reset(const struct device *dev);
 static int tps43_verify_device_id(const struct device *dev);
 static int tps43_configure_device(const struct device *dev);
+static void tps43_work_handler(struct k_work *work);
 
 struct tps43_data {
     struct k_work_delayable work;
@@ -125,30 +126,37 @@ static int tps43_verify_device_id(const struct device *dev)
 
 static int tps43_device_reset(const struct device *dev)
 {
-    const struct tps43_config *config = dev->config;
-    struct tps43_data *data = dev->data;
-    
+	const struct tps43_config *config = dev->config;
+	int ret;
+
     if (!gpio_is_ready_dt(&config->rst_gpio)) {
-        LOG_ERR("Reset GPIO not ready");
-        return -ENODEV;
+        /* Reset pin not provided; rely on internal POR */
+        return 0;
     }
-    
-    LOG_INF("Performing hardware reset");
-    
-    /* Reset sequence: LOW -> wait -> HIGH -> wait */
-    gpio_pin_set_dt(&config->rst_gpio, 0);
-    k_msleep(10);
-    gpio_pin_set_dt(&config->rst_gpio, 1);
-    k_msleep(50); /* Allow device to boot */
-    
-    /* Reset driver state */
-    data->device_ready = false;
-    data->error_count = 0;
-    data->x = 0;
-    data->y = 0;
-    data->touch_state = 0;
-    
-    return 0;
+
+    /* Ensure pin is configured as output */
+    ret = gpio_pin_configure_dt(&config->rst_gpio, GPIO_OUTPUT_HIGH);
+    if (ret < 0) {
+        LOG_ERR("Failed to configure reset GPIO: %d", ret);
+        return ret;
+    }
+
+	/* Reset sequence: Low -> High */
+    ret = gpio_pin_set_dt(&config->rst_gpio, 0);
+	if (ret < 0) {
+		return ret;
+	}
+
+	k_msleep(10);
+
+    ret = gpio_pin_set_dt(&config->rst_gpio, 1);
+	if (ret < 0) {
+		return ret;
+	}
+
+	k_msleep(100); /* Wait for reset to complete */
+
+	return 0;
 }
 
 static int tps43_configure_device(const struct device *dev)
@@ -203,35 +211,52 @@ static int tps43_configure_device(const struct device *dev)
 
 static int tps43_device_init(const struct device *dev)
 {
-    struct tps43_data *data = dev->data;
-    int ret;
-    
-    /* Reset device first */
+	const struct tps43_config *config = dev->config;
+	struct tps43_data *data = dev->data;
+	int ret;
+
+	LOG_INF("Initializing TPS43 trackpad");
+
+    data->dev = dev;
+    /* Initialize work loop for data processing */
+    k_work_init_delayable(&data->work, tps43_work_handler);
+
+	/* Check I2C bus */
+	if (!i2c_is_ready_dt(&config->i2c)) {
+		LOG_ERR("I2C bus not ready");
+		return -ENODEV;
+	}
+
+    /* Reset device */
     ret = tps43_device_reset(dev);
-    if (ret < 0) {
-        LOG_ERR("Device reset failed");
-        return ret;
-    }
-    
-    /* Verify device ID */
-    ret = tps43_verify_device_id(dev);
-    if (ret < 0) {
-        LOG_ERR("Device verification failed");
-        return ret;
-    }
-    
-    /* Configure device */
-    ret = tps43_configure_device(dev);
-    if (ret < 0) {
-        LOG_ERR("Device configuration failed");
-        return ret;
-    }
-    
+	if (ret < 0) {
+		LOG_ERR("Failed to reset device: %d", ret);
+		return ret;
+	}
+
+	/* Verify device presence */
+	uint8_t device_info;
+	ret = i2c_reg_read_byte_dt(&config->i2c, TPS43_REG_DEVICE_INFO, &device_info);
+	if (ret < 0) {
+		LOG_ERR("Failed to read device info: %d", ret);
+		return ret;
+	}
+
+	LOG_INF("TPS43 device info: 0x%02x", device_info);
+
+	/* Configure device */
+	ret = tps43_configure_device(dev);
+	if (ret < 0) {
+		LOG_ERR("Failed to configure device: %d", ret);
+		return ret;
+	}
+
+    /* Mark device ready and start work loop */
     data->device_ready = true;
-    data->initialized = true;
-    
-    LOG_INF("TPS43 device initialized successfully");
-    return 0;
+    k_work_reschedule(&data->work, K_NO_WAIT);
+
+	LOG_INF("TPS43 initialized successfully");
+	return 0;
 }
 
 static int tps43_read_touch_data(const struct device *dev)
@@ -311,15 +336,12 @@ static void tps43_work_handler(struct k_work *work)
     }
     
     k_mutex_unlock(&data->lock);
+
+    /* Schedule next poll based on configured rate */
+    k_work_reschedule(&data->work, K_MSEC(CONFIG_ZMK_SENSOR_TPS43_POLL_RATE_MS));
 }
 
-static void tps43_gpio_callback(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
-{
-    struct tps43_data *data = CONTAINER_OF(cb, struct tps43_data, gpio_cb);
-    
-    /* Schedule work to handle interrupt in work queue context */
-    k_work_reschedule(&data->work, K_NO_WAIT);
-}
+/* RDY GPIO interrupt callback no longer used; polling via work loop */
 
 static int tps43_sample_fetch(const struct device *dev, enum sensor_channel chan)
 {
@@ -438,12 +460,7 @@ static int tps43_init(const struct device *dev)
             return ret;
         }
         
-        gpio_init_callback(&data->gpio_cb, tps43_gpio_callback, BIT(config->int_gpio.pin));
-        ret = gpio_add_callback(config->int_gpio.port, &data->gpio_cb);
-        if (ret < 0) {
-            LOG_ERR("Failed to add GPIO callback: %d", ret);
-            return ret;
-        }
+        /* Interrupt callback removed; rely on work loop reschedule elsewhere */
     }
     
     /* Initialize device */

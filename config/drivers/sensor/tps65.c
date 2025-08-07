@@ -128,30 +128,37 @@ static int tps65_verify_device_id(const struct device *dev)
 
 static int tps65_device_reset(const struct device *dev)
 {
-    const struct tps65_config *config = dev->config;
-    struct tps65_data *data = dev->data;
-    
+	const struct tps65_config *config = dev->config;
+	int ret;
+
     if (!gpio_is_ready_dt(&config->rst_gpio)) {
-        LOG_ERR("Reset GPIO not ready");
-        return -ENODEV;
+        /* Reset pin not provided; rely on internal POR */
+        return 0;
     }
-    
-    LOG_INF("Performing hardware reset");
-    
-    /* Reset sequence: LOW -> wait -> HIGH -> wait */
-    gpio_pin_set_dt(&config->rst_gpio, 0);
-    k_msleep(10);
-    gpio_pin_set_dt(&config->rst_gpio, 1);
-    k_msleep(50); /* Allow device to boot */
-    
-    /* Reset driver state */
-    data->device_ready = false;
-    data->error_count = 0;
-    data->x = 0;
-    data->y = 0;
-    data->touch_state = 0;
-    
-    return 0;
+
+    /* Ensure pin is configured as output */
+    ret = gpio_pin_configure_dt(&config->rst_gpio, GPIO_OUTPUT_HIGH);
+    if (ret < 0) {
+        LOG_ERR("Failed to configure reset GPIO: %d", ret);
+        return ret;
+    }
+
+	/* Reset sequence: Low -> High */
+    ret = gpio_pin_set_dt(&config->rst_gpio, 0);
+	if (ret < 0) {
+		return ret;
+	}
+
+	k_msleep(10);
+
+    ret = gpio_pin_set_dt(&config->rst_gpio, 1);
+	if (ret < 0) {
+		return ret;
+	}
+
+	k_msleep(100); /* Wait for reset to complete */
+
+	return 0;
 }
 
 static int tps65_configure_device(const struct device *dev)
@@ -206,34 +213,38 @@ static int tps65_configure_device(const struct device *dev)
 
 static int tps65_device_init(const struct device *dev)
 {
-    struct tps65_data *data = dev->data;
-    int ret;
-    
-    /* Reset device first */
+	const struct tps65_config *config = dev->config;
+	struct tps65_data *data = dev->data;
+	int ret;
+
+    LOG_INF("Initializing TPS65 trackpad");
+
+    /* Reset device */
     ret = tps65_device_reset(dev);
     if (ret < 0) {
-        LOG_ERR("Device reset failed");
+        LOG_ERR("Failed to reset device: %d", ret);
         return ret;
     }
-    
-    /* Verify device ID */
+
+    /* Verify device presence */
     ret = tps65_verify_device_id(dev);
     if (ret < 0) {
-        LOG_ERR("Device verification failed");
         return ret;
     }
-    
+
     /* Configure device */
     ret = tps65_configure_device(dev);
     if (ret < 0) {
-        LOG_ERR("Device configuration failed");
+        LOG_ERR("Failed to configure device: %d", ret);
         return ret;
     }
-    
+
     data->device_ready = true;
-    data->initialized = true;
-    
-    LOG_INF("TPS65 device initialized successfully");
+
+    /* Kick off work loop */
+    k_work_reschedule(&data->work, K_NO_WAIT);
+
+    LOG_INF("TPS65 initialized successfully");
     return 0;
 }
 
@@ -314,6 +325,9 @@ static void tps65_work_handler(struct k_work *work)
     }
     
     k_mutex_unlock(&data->lock);
+
+    /* Schedule next poll based on configured rate */
+    k_work_reschedule(&data->work, K_MSEC(CONFIG_ZMK_SENSOR_TPS65_POLL_RATE_MS));
 }
 
 static void tps65_gpio_callback(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
@@ -383,7 +397,8 @@ static int tps65_trigger_set(const struct device *dev, const struct sensor_trigg
     
     if (handler) {
         /* Enable interrupt */
-        ret = gpio_pin_interrupt_configure_dt(&config->int_gpio, GPIO_INT_EDGE_FALLING);
+        /* RDY line is active-high per datasheet; trigger on active edge */
+        ret = gpio_pin_interrupt_configure_dt(&config->int_gpio, GPIO_INT_EDGE_TO_ACTIVE);
         if (ret < 0) {
             LOG_ERR("Failed to configure interrupt");
             goto unlock;

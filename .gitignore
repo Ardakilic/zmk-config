@@ -1,0 +1,10 @@
+# Python virtual environment
+.venv
+# Zephyr
+.west
+# Build artifacts
+build
+# Zephyr SDK
+zephyr-sdk-*
+# Zephyr build directory
+build

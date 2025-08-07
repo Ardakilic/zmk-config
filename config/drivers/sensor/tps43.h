@@ -38,14 +38,16 @@
 #define TPS43_REG_ACTIVE_CHANNELS   0x45
 
 /* IQS572 specific configuration registers */
-#define TPS43_REG_SYS_CONFIG        0x50
+#define TPS43_REG_SYS_CONFIG_0      0x50
 #define TPS43_REG_FILTER_SETTINGS   0x51
 #define TPS43_REG_POWER_MODE        0x52
+/* Resolution register pair (X then Y, 2 bytes each) */
+#define TPS43_REG_X_RESOLUTION      0x60
 
-/* IQS572 specific values for TPS43 */
-#define TPS43_MAX_X                 2048
-#define TPS43_MAX_Y                 1792
-#define TPS43_MAX_TOUCH_POINTS      5
+/* IQS572 limits */
+#define TPS43_MAX_X                  2048
+#define TPS43_MAX_Y                  1792
+#define TPS43_MAX_TOUCH_POINTS       5
 
 /* IQS572 device ID */
 #define TPS43_DEVICE_ID             0x41  /* Expected device ID for IQS572 */
@@ -76,41 +78,8 @@
 #define TPS43_INIT_TIMEOUT_MS       500
 #define TPS43_MAX_RETRIES           3
 
-struct tps43_config {
-	struct i2c_dt_spec i2c;
-	struct gpio_dt_spec ready_gpio;
-	struct gpio_dt_spec reset_gpio;
-	uint16_t max_x;
-	uint16_t max_y;
-	uint8_t max_touch_points;
-};
-
-struct tps43_data {
-	const struct device *dev;
-	struct k_work work;
-	struct k_timer poll_timer;
-	struct k_sem sem;
-	struct gpio_callback ready_cb;
-
-	uint8_t num_touches;
-	uint16_t x[TPS43_MAX_TOUCH_POINTS];
-	uint16_t y[TPS43_MAX_TOUCH_POINTS];
-	uint8_t touch_strength[TPS43_MAX_TOUCH_POINTS];
-	uint8_t touch_area[TPS43_MAX_TOUCH_POINTS];
-	
-	/* Error tracking and recovery */
-	uint8_t error_count;
-	bool device_ready;
-	int64_t last_success_time;
-	
-	/* Power management */
-	bool is_sleeping;
-};
-
-void tps43_ready_callback(const struct device *gpio_dev,
-			  struct gpio_callback *cb, uint32_t pins);
-
-/* Forward declaration for GPIO callback structure */
-struct gpio_callback;
+/* Opaque forward declarations; layout is private to the driver C file */
+struct tps43_data;
+struct tps43_config;
 
 #endif /* ZEPHYR_DRIVERS_SENSOR_TPS43_H_ */ 

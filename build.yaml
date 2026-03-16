@@ -16,21 +16,21 @@
 # cmake-args: -DCONFIG_ZMK_STUDIO=y
 ---
 include:
-  - board: nice_nano
+  - board: nice_nano//zmk
     shield: corne_left
-  - board: nice_nano
+  - board: nice_nano//zmk
     shield: corne_right
-  - board: nice_nano
+  - board: nice_nano//zmk
     shield: reviung41
-  - board: nice_nano
+  - board: nice_nano//zmk
     shield: contra
-  - board: plonck
-  - board: nice_nano
+  - board: plonck//zmk
+  - board: nice_nano//zmk
     shield: istanbul_left
     snippet: studio-rpc-usb-uart
-  - board: nice_nano
+  - board: nice_nano//zmk
     shield: istanbul_right
-  - board: nice_nano
+  - board: nice_nano//zmk
     shield: horizon
     snippet: studio-rpc-usb-uart
     cmake-args: -DCONFIG_ZMK_STUDIO=y

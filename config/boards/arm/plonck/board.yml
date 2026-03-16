@@ -2,6 +2,6 @@ board:
   name: plonck
   vendor: ardakilic
   socs:
-    - name: nrf52840_qiaa
+    - name: nrf52840
       variants:
         - name: zmk

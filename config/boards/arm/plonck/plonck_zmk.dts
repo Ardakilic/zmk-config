@@ -6,3 +6,4 @@
 
 // Include the base board definition
 #include "plonck.dts"
+#include <common/nordic/nrf52840_uf2_boot_mode.dtsi>

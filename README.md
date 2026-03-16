@@ -12,6 +12,7 @@ This repository houses the configuration files for all my ZMK-powered keyboards.
 - **Corne**: Split ergonomic keyboard with 42 keys
 - **Reviung41**: Unibody 41-key keyboard with RGB underglow support
 - **Contra**: 40% ortholinear keyboard (4×12 layout)
+- **Horizon**: 52-key unibody keyboard with ZMK Studio support
 
 ### Custom Boards/Shields
 - **Plonck**: Custom 40% ortholinear keyboard based on the nRF52840 chip
@@ -54,6 +55,23 @@ A custom split ergonomic keyboard with:
 Configuration files:
 - Keymap
 - Hardware Configuration
+
+### Horizon
+
+A 52-key unibody keyboard with:
+- 4×14 key matrix with central gap
+- ZMK Studio integration for live configuration
+- Power management with sleep mode and soft off
+- Turkish keyboard layout support
+- Multi-layer key configurations
+
+**Keyboard Source**: [skarrmann/horizon](https://github.com/skarrmann/horizon)
+**Firmware Source**: Based on [skarrmann/zmk-config](https://github.com/skarrmann/zmk-config)
+
+Configuration files:
+- Keymap
+- Hardware Configuration
+- Physical Layout Definition
 
 ## Building and Flashing
 

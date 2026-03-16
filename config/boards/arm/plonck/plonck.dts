@@ -53,12 +53,18 @@
 	};
 };
 
+&gpiote {
+	status = "okay";
+};
+
 &gpio0 {
 	status = "okay";
+	gpiote-instance = <&gpiote>;
 };
 
 &gpio1 {
 	status = "okay";
+	gpiote-instance = <&gpiote>;
 };
 
 &adc {

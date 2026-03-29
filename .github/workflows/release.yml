@@ -1,0 +1,68 @@
+name: Release ZMK Firmware
+
+on:
+  workflow_run:
+    workflows: [Build ZMK Firmware]
+    types: [completed]
+    branches: [master]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Download firmware artifact
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            let allArtifacts = await github.rest.actions.listWorkflowRunArtifacts({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.payload.workflow_run.id,
+            });
+
+            let matchArtifact = allArtifacts.data.artifacts.filter((artifact) => {
+              return artifact.name == "firmware"
+            })[0];
+
+            if (!matchArtifact) {
+              core.setFailed('No firmware artifact found');
+              return;
+            }
+
+            let download = await github.rest.actions.downloadArtifact({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              artifact_id: matchArtifact.id,
+              archive_format: 'zip',
+            });
+
+            const artifactPath = '${{ runner.temp }}/firmware.zip';
+            fs.writeFileSync(artifactPath, Buffer.from(download.data));
+
+      - name: Unzip firmware
+        run: |
+          mkdir -p "${{ runner.temp }}/firmware"
+          unzip "${{ runner.temp }}/firmware.zip" -d "${{ runner.temp }}/firmware"
+
+      - name: Delete existing release
+        run: gh release delete latest --cleanup-tag -y || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create release and upload assets
+        run: |
+          gh release create latest "${{ runner.temp }}"/firmware/* \
+            --title "Latest ZMK Firmware Release" \
+            --notes "Automatically built ZMK firmware from the latest successful build on master." \
+            --latest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
